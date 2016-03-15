@@ -6,6 +6,7 @@ from agents.random_agent import RandomAgent
 
 
 color_name = {BLACK: 'Black', WHITE: 'white'}
+opponent = {BLACK: WHITE, WHITE: BLACK}
 
 
 class Reversi:
@@ -19,18 +20,29 @@ class Reversi:
         self.white_agent = WhiteAgent()
         self.black_agent = BlackAgent()
 
+        self.legal_white_moves = []
+        self.legal_black_moves = []
+
         # black goes first
         self.turn = BLACK
         self.play_game()
 
     def play_game(self):
-        while not self.isWon():
-            print(str(self.board))
-            self.make_move(self.turn)
-            if self.turn == WHITE:
-                self.turn = BLACK
-            elif self.turn == BLACK:
-                self.turn = WHITE
+        self.update_legal_moves(self.get_state())
+        while not self.is_won():
+            self.print_board()
+            game_state = self.get_state()
+            self.update_legal_moves(game_state)
+            legal_moves = self.get_legal_moves(game_state)
+            picked = self.agent_pick_move(game_state, legal_moves)
+            if picked is None:
+                print('{} had no moves, and passed their turn.'.format(color_name[game_state[1]]))
+                self.turn = opponent[game_state[1]]
+                continue
+            else:
+                print('{} plays at {}'.format(color_name[game_state[1]], str(picked)))
+            updated_game_state = self.apply_move(game_state, picked[0], picked[1])
+            self.turn = updated_game_state[1]
         print(str(self.board))
 
         # figure out who won
@@ -53,9 +65,12 @@ class Reversi:
         else:
             print('Tie game!!')
 
-    def make_move(self, color):
+    def print_board(self):
+        print(str(self.board))
+
+    def agent_pick_move(self, game_state, legal_moves):
         picked = None
-        legal_moves = self.get_valid_moves(color)
+        color = game_state[1]
         while picked not in legal_moves:
             if color == WHITE:
                 picked = self.white_agent.get_action(
@@ -67,29 +82,28 @@ class Reversi:
                 raise ValueError
 
             if picked is None:
-                print('{} had no moves, and passed their turn.'.format(
-                    color_name[color]))
-                return
+                return None
             elif picked not in legal_moves:
                 print(str(picked) + ' is not a legal move!')
 
-        self.apply_move(color, picked[0], picked[1])
-        print('{} placed stone at {}'.format(color_name[color], str(picked)))
+        return picked
 
-    def get_valid_moves(self, color):
-        # pdb.set_trace()
-        board_size = self.board.get_dimensions()
+    def get_legal_moves(self, game_state):
+        board = game_state[0]
+        board_size = board.get_dimensions()
         moves = []  # list of x,y positions valid for color
 
         for y in range(board_size):
             for x in range(board_size):
-                if self.is_valid_move(color, x, y):
+                if self.is_valid_move(game_state, x, y):
                     moves.append((x, y))
 
         return moves
 
-    def is_valid_move(self, color, x, y):
-        piece = self.board.piece_at(x, y)
+    def is_valid_move(self, game_state, x, y):
+        board = game_state[0]
+        color = game_state[1]
+        piece = board.piece_at(x, y)
         if piece != EMPTY:
             return False
 
@@ -109,20 +123,21 @@ class Reversi:
                 yp = (distance * dy) + y
                 xp = (distance * dx) + x
 
-                while self.board.is_in_bounds(xp, yp) and self.board.piece_at(xp, yp) == opponent:
+                while board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == opponent:
                     distance += 1
                     yp = (distance * dy) + y
                     xp = (distance * dx) + x
 
-                if distance > 1 and self.board.is_in_bounds(xp, yp) and self.board.piece_at(xp, yp) == color:
+                if distance > 1 and board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == color:
                     return True
         return False
 
-    def apply_move(self, color, x, y):
-        """Apply the input move.  Caller is responsible for making sure
-        it is a valid move!"""
-
-        self.board.place_stone_at(color, x, y)
+    def apply_move(self, game_state, x, y):
+        """Given a game_state (which includes info about whose turn it is) and an x,y
+        position to place a piece, transform it into the game_state that follows this play."""
+        color = game_state[1]
+        board = game_state[0]
+        board.place_stone_at(color, x, y)
 
         # now flip all the stones in every direction
         opponent = BLACK
@@ -143,24 +158,38 @@ class Reversi:
                 xp = (distance * dx) + x
 
                 flip_candidates = []
-                while self.board.is_in_bounds(xp, yp) and self.board.piece_at(xp, yp) == opponent:
+                while board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == opponent:
                     flip_candidates.append((xp, yp))
                     distance += 1
                     yp = (distance * dy) + y
                     xp = (distance * dx) + x
 
-                if distance > 1 and self.board.is_in_bounds(xp, yp) and self.board.piece_at(xp, yp) == color:
+                if distance > 1 and board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == color:
                     to_flip.extend(flip_candidates)
 
         for each in to_flip:
-            self.board.place_stone_at(color, each[0], each[1])
+            board.place_stone_at(color, each[0], each[1])
 
-    def isWon(self):
+        if game_state[1] == WHITE:
+            game_state = (game_state[0], BLACK)
+        elif game_state[1] == BLACK:
+            game_state = (game_state[0], WHITE)
+
+        return game_state
+
+    def is_won(self):
         """The game is over when neither player can make a move."""
-        white_moves = self.get_valid_moves(WHITE)
-        black_moves = self.get_valid_moves(BLACK)
+        return len(self.legal_black_moves) == 0 and len(self.legal_white_moves) == 0
 
-        return len(white_moves) == 0 and len(black_moves) == 0
+    def update_legal_moves(self, game_state):
+        legal_moves = self.get_legal_moves(game_state)
+        color = game_state[1]
+        if color == WHITE:
+            self.legal_white_moves = legal_moves
+        elif color == BLACK:
+            self.legal_black_moves = legal_moves
+        else:
+            raise ValueError
 
     def get_state(self):
         """Returns a tuple representing the board state."""

@@ -7,13 +7,9 @@ from util import *
 
 
 def main():
-    amount = 1
-    if len(argv) > 1 and argv[1].isdigit():
-        amount = int(argv[1])
 
     board_size = (8, 8)
     bot_time = 10
-
     agent_args = {
         'BlackAgent': monte_carlo_agent.MonteCarloAgent,
         'WhiteAgent': random_agent.RandomAgent,
@@ -22,12 +18,20 @@ def main():
         'black_time': bot_time
     }
 
+    amount = 1
+    if len(argv) > 1 and argv[1].isdigit():
+        amount = int(argv[1])
+    if len(argv) > 2 and argv[2].isdigit():
+        agent_args['white_time'] = int(argv[2])
+        agent_args['black_time'] = int(argv[2])
     if 'print' in argv:
         agent_args['print'] = True
-    for it in argv:
-        if it.isdigit():
-            agent_args['white_time'] = int(it)
-            agent_args['black_time'] = int(it)
+    if 'white' in argv:
+        agent_args['WhiteAgent'] = monte_carlo_agent.MonteCarloAgent
+        agent_args['BlackAgent'] = human_agent.HumanAgent
+    elif 'black' in argv:
+        agent_args['BlackAgent'] = monte_carlo_agent.MonteCarloAgent
+        agent_args['WhiteAgent'] = human_agent.HumanAgent
 
     summary = []
     white_wins = 0

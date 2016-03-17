@@ -69,18 +69,18 @@ class Board:
             result += str(y) + ' '
             for x in range(width):
                 if self.board[y, x] == WHITE:
-                    result += 'O'
+                    result += 'O '
                 elif self.board[y, x] == BLACK:
-                    result += 'X'
+                    result += 'X '
                 elif self.board[y, x] == EMPTY:
-                    result += '-'
+                    result += '- '
                 else:
-                    result += '?'
+                    result += '? '
             result += '\n'
 
         result += '  '
         for x in range(width):
-            result += str(x)
+            result += str(x) + ' '
         result += '\n'
 
         return result

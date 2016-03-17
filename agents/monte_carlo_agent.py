@@ -19,6 +19,7 @@ class MonteCarloAgent(Agent):
 
         self.sim_time = kwargs.get('time', SIM_TIME)
         self.states_to_nodes = {}
+        self.wins_plays = {}
 
     def get_action(self, game_state, legal_moves):
         # always make sure you are getting a deep copy
@@ -32,14 +33,7 @@ class MonteCarloAgent(Agent):
         return move
 
     def monte_carlo_search(self, game_state):
-        root = None
-        if isinstance(game_state, Node):
-            pdb.set_trace()
-        if game_state in self.states_to_nodes:
-            root = self.states_to_nodes[game_state]
-        else:
-            root = Node(game_state)
-            self.states_to_nodes[game_state] = root
+        root = Node(game_state)
 
         # even if this is a "recycled" node we've already used,
         # remove its parent as it is now considered our root level node
@@ -48,8 +42,7 @@ class MonteCarloAgent(Agent):
         sim_count = 0
         now = time.time()
         while time.time() - now < self.sim_time:
-            visited = set()
-            picked_node = self.tree_policy(root, visited)
+            picked_node = self.tree_policy(root)
             result = self.simulate(picked_node.get_game_state())
             self.back_prop(picked_node, result)
             sim_count += 1
@@ -92,7 +85,7 @@ class MonteCarloAgent(Agent):
         node.add_play()
         node.add_win_delta(delta)
 
-    def tree_policy(self, root, visited):
+    def tree_policy(self, root):
         cur_node = root
         while True:
             # if this is a terminal node, break
@@ -101,42 +94,37 @@ class MonteCarloAgent(Agent):
             if len(legal_moves) == 0:
                 break
 
-            # expand unexplored children states, add them to the tree
+            # if children are not fully expanded, expand one or more
             if len(cur_node.get_children()) < len(legal_moves):
                 next_states_moves = [
                     (self.reversi.next_state(
                         cur_node.get_game_state(), *move), move) for move in legal_moves
                 ]
-                unseen = [
+                unexpanded = [
                     state_move for state_move in next_states_moves
-                    if state_move[0] not in visited
+                    if not cur_node.has_child_state(state_move[0])
                 ]
 
-                if len(unseen) == 0:
-                    pdb.set_trace()
-
-                to_expand = random.choice(unseen)
-                state, move = to_expand
+                assert len(unexpanded) > 0
+                state, move = random.choice(unexpanded)
                 n = Node(state, move)
                 cur_node.add_child(n)
-                visited.add(state)
-                self.states_to_nodes[n] = state
 
                 return n
             else:
                 cur_node = self.best_child(cur_node)
-                assert cur_node is not None
 
         return cur_node
 
+
     def best_child(self, node):
-        C = 2
+        C = 1
         values = {}
         for child in node.get_children():
             wins, plays = child.get_wins_plays()
-            parent_plays = node.get_wins_plays()[1]
+            _, parent_plays = node.get_wins_plays()
             values[child] = (wins / plays) \
-                + math.sqrt(C * math.log(parent_plays) / plays)
+                + C * math.sqrt(2 * math.log(parent_plays) / plays)
 
         best_choice = max(values, key=values.get)
         return best_choice
@@ -167,6 +155,8 @@ class Node:
         self.children = []
         self.parent = None
 
+        self.child_states = set()
+
         # the action that led to this child state
         self.action = action
 
@@ -175,7 +165,11 @@ class Node:
 
     def add_child(self, node):
         self.children.append(node)
+        self.child_states.add(node.get_game_state())
         node.parent = self
+
+    def has_child_state(self, state):
+        return state in self.child_states
 
     def get_action(self):
         return self.action
@@ -203,6 +197,9 @@ class Node:
 
     def remove_parent(self):
         self.parent = None
+
+    def __repr__(self):
+        return 'move: {} wins: {} plays: {}'.format(self.action, self.wins, self.plays)
 
     def __eq__(self, other):
         if not isinstance(other, Node):

@@ -13,10 +13,10 @@ def main():
 
     # black_agent = monte_carlo_agent.MonteCarloAgent
     black_agent = monte_carlo_agent.MonteCarloAgent
-    # white_agent = human_agent.HumanAgent
+    white_agent = human_agent.HumanAgent
     # white_agent = test_carlo_agent.MonteCarloAgent
     # black_agent = human_agent.HumanAgent
-    white_agent = test_carlo_agent.MonteCarloAgent
+    # white_agent = test_carlo_agent.MonteCarloAgent
     board_size = (8, 8)
 
     summary = []
@@ -25,7 +25,7 @@ def main():
     now = time.time()
     for t in range(amount):
         print('starting game {} of {}'.format(t, amount))
-        reversi = Reversi(board_size, black_agent, white_agent, black_time=5, white_time=5)
+        reversi = Reversi(board_size, black_agent, white_agent, black_time=10, white_time=10)
         winner, white_score, black_score = reversi.play_game()
         if winner == WHITE:
             white_wins += 1

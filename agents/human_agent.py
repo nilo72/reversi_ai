@@ -4,6 +4,9 @@ from agents.agent import Agent
 class HumanAgent(Agent):
     """This agent is controlled by a human, who inputs moves via stdin."""
 
+    def __init__(self, reversi, color, **kwargs):
+        pass
+
     def get_action(self, game_state, legal_moves):
         choice = None
         while True:

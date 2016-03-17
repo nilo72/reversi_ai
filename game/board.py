@@ -1,9 +1,5 @@
 import numpy as np
-
-BLACK = 1
-WHITE = -1
-EMPTY = 0
-
+from util import *
 
 class Board:
 
@@ -36,8 +32,22 @@ class Board:
         elif color == BLACK:
             self.black_stones += 1
 
+    def flip_stone(self, x, y):
+        piece = self.piece_at(x, y)
+        if piece == WHITE:
+            self.white_stones -= 1
+            self.place_stone_at(BLACK, x, y)
+        elif piece == BLACK:
+            self.black_stones -= 1
+            self.place_stone_at(WHITE, x, y)
+        else:
+            raise TypeError
+
     def get_stone_counts(self):
         return self.black_stones, self.white_stones
+
+    def is_full(self):
+        return self.black_stones + self.white_stones == (self.dimens[0] ** 2)
 
     def get_dimensions(self):
         return self.dimens[0]
@@ -55,7 +65,7 @@ class Board:
     def __str__(self):
         result = ''
         height, width = np.shape(self.board)
-        for y in range(height-1, -1, -1):
+        for y in range(height - 1, -1, -1):
             result += str(y) + ' '
             for x in range(width):
                 if self.board[y, x] == WHITE:
@@ -75,3 +85,8 @@ class Board:
 
         return result
 
+    def __hash__(self):
+        return hash(str(self.board))
+
+    def __eq__(self, other):
+        return self.board.all() == other.board.all()

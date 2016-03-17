@@ -5,8 +5,6 @@ import copy
 import pdb
 from agents.agent import Agent
 
-SIM_TIME = 3
-
 
 class MonteCarloAgent(Agent):
     """An agent utilizing Monte Carlo Tree Search.  I based much of
@@ -16,21 +14,18 @@ class MonteCarloAgent(Agent):
     def __init__(self, reversi, color, **kwargs):
         self.color = color
         self.reversi = reversi
-
-        self.sim_time = kwargs.get('time', SIM_TIME)
-        self.states_to_nodes = {}
-        self.wins_plays = {}
+        self.print_info = kwargs.get('print', False)
+        self.sim_time = kwargs.get('time', 5)
 
     def get_action(self, game_state, legal_moves):
         # always make sure you are getting a deep copy
         game_state = copy.deepcopy(game_state)
-
         move = self.monte_carlo_search(game_state)
-
-        # print(
-        #    '({},{}) wins/plays: {}/{}'.format(move[0], move[1], wins_plays[0], wins_plays[1]))
-        # print('({} sims played)'.format(sims_played))
         return move
+
+    def info(self, s):
+        if self.print_info:
+            print(s)
 
     def monte_carlo_search(self, game_state):
         root = Node(game_state)
@@ -50,11 +45,12 @@ class MonteCarloAgent(Agent):
         for child in root.get_children():
             wins, plays = child.get_wins_plays()
             position = child.get_action()
-            print('{}: ({}/{})'.format(position, wins, plays))
-        print('{} simulations performed.'.format(sim_count))
+            self.info('{}: ({}/{})'.format(position, wins, plays))
+        self.info('{} simulations performed.'.format(sim_count))
         return self.best_action(root)
 
-    def best_action(self, node):
+    @staticmethod
+    def best_action(node):
         # pick the action with the most plays, breaking ties.
         most_plays = -float('inf')
         best_wins = -float('inf')
@@ -75,7 +71,8 @@ class MonteCarloAgent(Agent):
 
         return random.choice(best_actions)
 
-    def back_prop(self, node, delta):
+    @staticmethod
+    def back_prop(node, delta):
         while node.get_parent() is not None:
             node.add_play()
             node.add_win_delta(delta)
@@ -116,8 +113,8 @@ class MonteCarloAgent(Agent):
 
         return cur_node
 
-
-    def best_child(self, node):
+    @staticmethod
+    def best_child(node):
         C = 1
         values = {}
         for child in node.get_children():

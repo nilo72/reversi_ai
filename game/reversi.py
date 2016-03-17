@@ -19,8 +19,8 @@ class Reversi:
 
         black_time = kwargs.get('black_time', 5)
         white_time = kwargs.get('white_time', 5)
-        self.white_agent = WhiteAgent(self, WHITE, time=white_time)
-        self.black_agent = BlackAgent(self, BLACK, time=black_time)
+        self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)
+        self.black_agent = BlackAgent(self, BLACK, time=black_time, **kwargs)
 
         # storing legal moves allows us to avoid needlessly recalculating them
         self.legal_white_moves = []

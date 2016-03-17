@@ -11,33 +11,43 @@ def main():
     if len(argv) > 1 and argv[1].isdigit():
         amount = int(argv[1])
 
-    # black_agent = monte_carlo_agent.MonteCarloAgent
-    black_agent = monte_carlo_agent.MonteCarloAgent
-    white_agent = human_agent.HumanAgent
-    # white_agent = test_carlo_agent.MonteCarloAgent
-    # black_agent = human_agent.HumanAgent
-    # white_agent = test_carlo_agent.MonteCarloAgent
     board_size = (8, 8)
+    bot_time = 10
+
+    agent_args = {
+        'BlackAgent': monte_carlo_agent.MonteCarloAgent,
+        'WhiteAgent': random_agent.RandomAgent,
+        'print': False,
+        'white_time': bot_time,
+        'black_time': bot_time
+    }
+
+    if 'print' in argv:
+        agent_args['print'] = True
+    for it in argv:
+        if it.isdigit():
+            agent_args['white_time'] = int(it)
+            agent_args['black_time'] = int(it)
 
     summary = []
     white_wins = 0
     black_wins = 0
-    now = time.time()
-    for t in range(amount):
+    start = time.time()
+    for t in range(1, amount + 1):
         print('starting game {} of {}'.format(t, amount))
-        reversi = Reversi(board_size, black_agent, white_agent, black_time=10, white_time=10)
+        reversi = Reversi(board_size, **agent_args)
         winner, white_score, black_score = reversi.play_game()
         if winner == WHITE:
             white_wins += 1
         elif winner == BLACK:
             black_wins += 1
         print('game {} complete.'.format(t))
-        message = '{} wins! {}-{}'.format(color_name[winner], white_score, black_score)
+        message = '{} wins! {}-{}'.format(
+            color_name[winner], white_score, black_score)
+        print(message)
         summary.append(message)
 
-    print('time: {} minutes'.format((time.time() - now) / 60))
-
-
+    print('time: {} minutes'.format((time.time() - start) / 60))
     print('summary: {} games played'.format(len(summary)))
     for each in summary:
         print(each)

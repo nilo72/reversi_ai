@@ -1,9 +1,10 @@
 import random
 import time
 import math
+import copy
+import pdb
 from agents.agent import Agent
-
-SIM_TIME = 3
+from util import *
 
 
 class MonteCarloAgent(Agent):
@@ -14,117 +15,185 @@ class MonteCarloAgent(Agent):
     def __init__(self, reversi, color, **kwargs):
         self.color = color
         self.reversi = reversi
-
-        self.sim_time = kwargs.get('time', SIM_TIME)
-
-        # map each visited state to a list containing the amount of plays it
-        # has seen and the amount of times it has won. state -> [wins, plays]
-        self.wins_and_plays = {}
+        self.print_info = kwargs.get('print', False)
+        self.sim_time = kwargs.get('time', 5)
+        self.state_node = {}
 
     def get_action(self, game_state, legal_moves):
-        sims_played = self.simulate(game_state)
+        # always make sure you are getting a deep copy
+        game_state = copy.deepcopy(game_state)
+        move = self.monte_carlo_search(game_state)
+        return move
 
-        # once simulation is done, pick the most promising next move
-        best_val = -float('inf')
-        best_ratio = 0
-        best_moves = []
-        for move in legal_moves:
-            next_state = self.reversi.next_state(game_state, move[0], move[1])
-            if next_state not in self.wins_and_plays:
-                continue
-            wins_plays = self.wins_and_plays[next_state]
-            val = wins_plays[1]
-            if val > best_val:
-                best_val = val
-                best_ratio = wins_plays[0] / wins_plays[1]
-                best_moves = [move]
-            elif val == best_val:
-                ratio = wins_plays[0] / wins_plays[1]
-                if ratio > best_ratio:
-                    best_ratio = ratio
-                    best_moves = [move]
-                elif ratio == best_ratio:
-                    best_moves.append(move)
+    def info(self, s):
+        if self.print_info:
+            print(s)
 
-            print('{}: ({}/{})'.format(move, wins_plays[0], wins_plays[1]))
-        print('({} sims played)'.format(sims_played))
-        assert len(best_moves) > 0
-        return random.choice(best_moves)
+    def monte_carlo_search(self, game_state):
+        root = None
+        if game_state in self.state_node:
+            root = self.state_node[game_state]
+        else:
+            root = Node(game_state)
+
+        # even if this is a "recycled" node we've already used,
+        # remove its parent as it is now considered our root level node
+        root.parent = None
+
+        sim_count = 0
+        now = time.time()
+        while time.time() - now < self.sim_time:
+            picked_node = self.tree_policy(root)
+            result = self.simulate(picked_node.game_state)
+            self.back_prop(picked_node, result)
+            sim_count += 1
+
+        for child in root.children:
+            wins, plays = child.get_wins_plays()
+            position = child.move
+            self.info('{}: ({}/{})'.format(position, wins, plays))
+        self.info('{} simulations performed.'.format(sim_count))
+        return self.best_action(root)
+
+    @staticmethod
+    def best_action(node):
+        # pick the action with the most plays, breaking ties.
+        most_plays = -float('inf')
+        best_wins = -float('inf')
+        best_actions = []
+        for child in node.children:
+            wins, plays = child.get_wins_plays()
+            if plays > most_plays:
+                most_plays = plays
+                best_actions = [child.move]
+                best_wins = wins
+            elif plays == most_plays:
+                # break ties with wins
+                if wins > best_wins:
+                    best_wins = wins
+                    best_actions = [child.move]
+                elif wins == best_wins:
+                    best_actions.append(child.move)
+
+        return random.choice(best_actions)
+
+    @staticmethod
+    def back_prop(node, delta):
+        while node.parent is not None:
+            node.plays += 1
+            node.wins += delta
+            node = node.parent
+
+        # update root node of entire tree
+        node.plays += 1
+        node.wins += delta
+
+    def tree_policy(self, root):
+        cur_node = root
+        while True:
+            # if this is a terminal node, break
+            legal_moves = self.reversi.get_legal_moves(
+                cur_node.game_state)
+            if len(legal_moves) == 0:
+                # if the game is won, break
+                if self.reversi.winner(cur_node.game_state):
+                    break
+                else:
+                    # player passes their turn
+                    next_state = (cur_node.game_state[0], opponent[cur_node.game_state[1]])
+                    pass_node = Node(next_state)
+                    cur_node.add_child(pass_node)
+                    self.state_node[next_state] = pass_node
+                    cur_node = pass_node
+                    continue
+
+            # if children are not fully expanded, expand one or more
+            if len(cur_node.children) < len(legal_moves):
+                next_states_moves = [
+                    (self.reversi.next_state(
+                        cur_node.game_state, *move), move) for move in legal_moves
+                ]
+                unexpanded = [
+                    state_move for state_move in next_states_moves
+                    if not cur_node.has_child_state(state_move[0])
+                ]
+
+                assert len(unexpanded) > 0
+                state, move = random.choice(unexpanded)
+                n = Node(state, move)
+                cur_node.add_child(n)
+                self.state_node[state] = n
+
+                return n
+            else:
+                cur_node = self.best_child(cur_node)
+
+        return cur_node
+
+    @staticmethod
+    def best_child(node):
+        C = 1
+        values = {}
+        for child in node.children:
+            wins, plays = child.get_wins_plays()
+            _, parent_plays = node.get_wins_plays()
+            values[child] = (wins / plays) \
+                + C * math.sqrt(2 * math.log(parent_plays) / plays)
+
+        best_choice = max(values, key=values.get)
+        return best_choice
 
     def simulate(self, game_state):
-        start = time.time()
-        sims_played = 0
-        while time.time() - start < self.sim_time:
-            cur_state = game_state
-            if cur_state not in self.wins_and_plays:
-                self.wins_and_plays[cur_state] = [0, 0]
-            traversed = set()
-            traversed.add(cur_state)
-
-            # selection
-            while True:
-                next_states = [self.reversi.next_state(
-                    cur_state, move[0], move[1]) for move in self.reversi.get_legal_moves(cur_state)]
-                unvisited = [
-                    state for state in next_states if state not in self.wins_and_plays]
-
-                # we're done if we encounter unvisited children, or reach a
-                # leaf
-                if len(unvisited) != 0 or len(next_states) == 0:
-                    break
-
-                cur_plays = self.wins_and_plays[cur_state][1]
-                values = {}
-                for state in next_states:
-                    wins_plays = self.wins_and_plays[state]
-                    mean = wins_plays[0] / wins_plays[1]
-                    assert cur_plays != 0
-                    assert wins_plays[1] != 0
-                    C = 1
-                    values[state] = mean + \
-                        math.sqrt(C * math.log(cur_plays) / wins_plays[1])
-                cur_state = max(values, key=values.get)
-                traversed.add(cur_state)
-
-            # expansion
-            if len(unvisited) != 0:
-                cur_state = random.choice(unvisited)
-
-            #simulate
-            if cur_state in traversed:
-                # don't include cur_state in traversed because
-                # run_simulation adds cur_state to its own internal set.
-                traversed.remove(cur_state)
-            self.run_simulation(cur_state, traversed)
-            sims_played += 1
-
-        return sims_played
-
-    def run_simulation(self, game_state, traversed=None):
-        visited_states = set()
         state = game_state
-        visited_states.add(state)
-        if state not in self.wins_and_plays:
-            self.wins_and_plays[state] = [0, 0]
-
-        while self.reversi.winner(state) is False:
+        while True:
             legal_moves = self.reversi.get_legal_moves(state)
             if len(legal_moves) == 0:
-                # player can't make a move so their turn passes
-                state = (state[0], state[1] * -1)
-                continue
-            picked = random.choice(legal_moves)
-            state = self.reversi.next_state(state, picked[0], picked[1])
-            visited_states.add(state)
-            if state not in self.wins_and_plays:
-                self.wins_and_plays[state] = [0, 0]
+                break
 
-        won = 1 if self.reversi.winner(state) == self.color else 0
-        for visited in visited_states:
-            self.wins_and_plays[visited][0] += won
-            self.wins_and_plays[visited][1] += 1
+            picked_move = random.choice(legal_moves)
+            state = self.reversi.next_state(state, *picked_move)
 
-        if traversed is not None:
-            for each in traversed:
-                self.wins_and_plays[each][0] += won
-                self.wins_and_plays[each][1] += 1
+        result = self.reversi.winner(state)
+        if result == self.color:
+            return 1
+        else:
+            return 0
+
+
+class Node:
+
+    def __init__(self, game_state, move=None):
+        self.game_state = game_state
+        self.plays = 0
+        self.wins = 0
+        self.children = []
+        self.parent = None
+        self.child_states = set()
+
+        # the move that led to this child state
+        self.move = move
+
+    def add_child(self, node):
+        self.children.append(node)
+        self.child_states.add(node.game_state)
+        node.parent = self
+
+    def has_child_state(self, state):
+        return state in self.child_states
+
+    def has_children(self):
+        return len(self.children) > 0
+
+    def get_wins_plays(self):
+        return self.wins, self.plays
+
+    def __hash__(self):
+        return hash(self.game_state)
+
+    def __repr__(self):
+        return 'move: {} wins: {} plays: {}'.format(self.move, self.wins, self.plays)
+
+    def __eq__(self, other):
+        if not isinstance(other, Node):
+            return False
+        return self.game_state == other.game_state

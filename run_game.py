@@ -11,8 +11,8 @@ def main():
     board_size = (8, 8)
     bot_time = 10
     agent_args = {
-        'BlackAgent': monte_carlo_agent.MonteCarloAgent,
-        'WhiteAgent': random_agent.RandomAgent,
+        'BlackAgent': test_carlo_agent.MonteCarloAgent,
+        'WhiteAgent': test_carlo_agent.MonteCarloAgent,
         'print': False,
         'white_time': bot_time,
         'black_time': bot_time

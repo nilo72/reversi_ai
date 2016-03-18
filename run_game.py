@@ -2,20 +2,21 @@
 from sys import argv
 import time
 from game.reversi import Reversi
-from agents import random_agent, monte_carlo_agent, human_agent, test_carlo_agent
+from agents import random_agent, monte_carlo_agent, human_agent, q_learning_agent
 from util import *
 
 
 def main():
 
     board_size = (8, 8)
-    bot_time = 10
+    bot_time = 5 
     agent_args = {
-        'BlackAgent': test_carlo_agent.MonteCarloAgent,
-        'WhiteAgent': test_carlo_agent.MonteCarloAgent,
+        'BlackAgent': q_learning_agent.QLearningAgent,
+        'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
         'print': False,
         'white_time': bot_time,
-        'black_time': bot_time
+        'black_time': bot_time,
+        'learn': 100
     }
 
     amount = 1

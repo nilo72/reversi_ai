@@ -1,7 +1,7 @@
 from collections import deque
 class CacheDict:
 
-    def __init__(self, max_len=10):
+    def __init__(self, max_len=5):
         self.c_q = deque([])
         self.c_dict = {}
         self.max_len = max_len

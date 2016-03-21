@@ -156,11 +156,11 @@ class MonteCarloAgent(Agent):
                 else:
                     raise ValueError
 
-            moves = self.reversi.get_legal_moves(state, force_cache=True)
+            moves = self.reversi.get_legal_moves(state)
             if not moves:
                 # if no moves, turn passes to opponent
                 state = (state[0], opponent[state[1]])
-                moves = self.reversi.get_legal_moves(state, force_cache=True)
+                moves = self.reversi.get_legal_moves(state)
 
             picked = random.choice(moves)
             state = self.reversi.next_state(state, *picked)

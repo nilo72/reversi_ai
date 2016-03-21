@@ -110,10 +110,10 @@ class Reversi:
         self.legal_cache.update(game_state, moves)
         return moves
 
-    def is_valid_move(self, game_state, x, y):
-        board = game_state[0]
-        color = game_state[1]
-        piece = board.piece_at(x, y)
+    @staticmethod
+    def is_valid_move(game_state, x, y):
+        board, color = game_state
+        piece = board.board[y][x]
         if piece != EMPTY:
             return False
 
@@ -131,12 +131,12 @@ class Reversi:
                 yp = (distance * dy) + y
                 xp = (distance * dx) + x
 
-                while board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == enemy:
+                while board.is_in_bounds(xp, yp) and board.board[yp][xp] == enemy:
                     distance += 1
                     yp = (distance * dy) + y
                     xp = (distance * dx) + x
 
-                if distance > 1 and board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == color:
+                if distance > 1 and board.is_in_bounds(xp, yp) and board.board[yp][xp] == color:
                     return True
         return False
 
@@ -147,7 +147,8 @@ class Reversi:
         result = self.apply_move(game_state_copy, x, y)
         return result
 
-    def apply_move(self, game_state, x, y):
+    @staticmethod
+    def apply_move(game_state, x, y):
         """Given a game_state (which includes info about whose turn it is) and an x,y
         position to place a piece, transform it into the game_state that follows this play."""
         color = game_state[1]
@@ -173,13 +174,13 @@ class Reversi:
                 xp = (distance * dx) + x
 
                 flip_candidates = []
-                while board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == opponent:
+                while board.is_in_bounds(xp, yp) and board.board[yp][xp] == opponent:
                     flip_candidates.append((xp, yp))
                     distance += 1
                     yp = (distance * dy) + y
                     xp = (distance * dx) + x
 
-                if distance > 1 and board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == color:
+                if distance > 1 and board.is_in_bounds(xp, yp) and board.board[yp][xp] == color:
                     to_flip.extend(flip_candidates)
 
         for each in to_flip:
@@ -199,12 +200,14 @@ class Reversi:
 
     def winner(self, game_state):
         """Given a game_state, return the color of the winner if there is one,
-        otherwise return False to indicate the game isn't won yet."""
+        otherwise return False to indicate the game isn't won yet.
+        Note that get_legal_moves() is a slow operation, so this method
+        tries to call it as few times as possible."""
         board = game_state[0]
+        black_count, white_count = board.get_stone_counts()
 
         # a full board means no more moves can be made, game over.
         if board.is_full():
-            black_count, white_count = board.get_stone_counts()
             if black_count > white_count:
                 return BLACK
             else:
@@ -213,17 +216,19 @@ class Reversi:
 
         # a non-full board can still be game-over if neither player can move.
         black_legal = self.get_legal_moves((game_state[0], BLACK))
-        white_legal = self.get_legal_moves((game_state[0], WHITE))
-        if not black_legal and not white_legal:
-            black_count, white_count = board.get_stone_counts()
-            if black_count > white_count:
-                return BLACK
-            else:
-                # tie goes to white
-                return WHITE
-        else:
-            # game isn't over yet
+        if black_legal:
             return False
+
+        white_legal = self.get_legal_moves((game_state[0], WHITE))
+        if white_legal:
+            return False
+
+        # neither black nor white has valid moves
+        if black_count > white_count:
+            return BLACK
+        else:
+            # tie goes to white
+            return WHITE
 
     def update_legal_moves(self, game_state):
         legal_moves = self.get_legal_moves(game_state)

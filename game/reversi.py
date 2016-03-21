@@ -20,7 +20,7 @@ class Reversi:
         # it is.
         self.game_state = (self.board, BLACK)
         self.legal_cache = CacheDict()
-        # self.valid_cache = CacheDict()
+
         black_time = kwargs.get('black_time', 5)
         white_time = kwargs.get('white_time', 5)
         self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)

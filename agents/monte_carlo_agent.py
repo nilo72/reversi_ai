@@ -145,7 +145,7 @@ class MonteCarloAgent(Agent):
         return best_choice
 
     def simulate(self, game_state):
-        state = game_state
+        state = copy.deepcopy(game_state)
         while True:
             winner = self.reversi.winner(state)
             if winner is not False:
@@ -163,7 +163,7 @@ class MonteCarloAgent(Agent):
                 moves = self.reversi.get_legal_moves(state)
 
             picked = random.choice(moves)
-            state = self.reversi.next_state(state, *picked)
+            state = self.reversi.apply_move(state, *picked)
 
 
 class Node:

@@ -9,13 +9,13 @@ from util import *
 def main():
 
     board_size = 8
-    bot_time = 10 
+    bot_time = 10
     agent_args = {
         'BlackAgent': monte_carlo_agent.MonteCarloAgent,
         'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
         'print': False,
-        'white_time': bot_time,
-        'black_time': bot_time,
+        'white_time': 1,
+        'black_time': 3,
         'episodes': 200
     }
 

@@ -100,7 +100,8 @@ class MonteCarloAgent(Agent):
                     break
                 else:
                     # player passes their turn
-                    next_state = (cur_node.game_state[0], opponent[cur_node.game_state[1]])
+                    next_state = (cur_node.game_state[0], opponent[
+                                  cur_node.game_state[1]])
                     pass_node = Node(next_state)
                     cur_node.add_child(pass_node)
                     self.state_node[next_state] = pass_node
@@ -146,18 +147,23 @@ class MonteCarloAgent(Agent):
     def simulate(self, game_state):
         state = game_state
         while True:
-            legal_moves = self.reversi.get_legal_moves(state)
-            if len(legal_moves) == 0:
-                break
+            winner = self.reversi.winner(state)
+            if winner is not False:
+                if winner == self.color:
+                    return 1
+                elif winner == opponent[self.color]:
+                    return 0
+                else:
+                    raise ValueError
 
-            picked_move = random.choice(legal_moves)
-            state = self.reversi.next_state(state, *picked_move)
+            moves = self.reversi.get_legal_moves(state, force_cache=True)
+            if not moves:
+                # if no moves, turn passes to opponent
+                state = (state[0], opponent[state[1]])
+                moves = self.reversi.get_legal_moves(state, force_cache=True)
 
-        result = self.reversi.winner(state)
-        if result == self.color:
-            return 1
-        else:
-            return 0
+            picked = random.choice(moves)
+            state = self.reversi.next_state(state, *picked)
 
 
 class Node:

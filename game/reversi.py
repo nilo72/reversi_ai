@@ -19,9 +19,8 @@ class Reversi:
         # game state is a 2-tuple of the board state, and which player's turn
         # it is.
         self.game_state = (self.board, BLACK)
-        # self.legal_cache = CacheDict()
+        self.legal_cache = CacheDict()
         # self.valid_cache = CacheDict()
-        # self.winner_cache = CacheDict()
         black_time = kwargs.get('black_time', 5)
         white_time = kwargs.get('white_time', 5)
         self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)
@@ -88,13 +87,19 @@ class Reversi:
 
         return picked
 
-    def get_legal_moves(self, game_state):
-        # cached = self.legal_cache.get(game_state)
-        # if cached is not None:
-        #    return cached
+    def get_legal_moves(self, game_state, force_cache=False):
+        if force_cache:
+            return self.legal_cache.get(game_state)
 
         board = game_state[0]
-        board_size = self.size
+        if board.is_full():
+            return []
+
+        cached = self.legal_cache.get(game_state)
+        if cached is not None:
+            return cached
+
+        board_size = board.get_size()
         moves = []  # list of x,y positions valid for color
 
         for y in range(board_size):
@@ -102,7 +107,7 @@ class Reversi:
                 if self.is_valid_move(game_state, x, y):
                     moves.append((x, y))
 
-        # self.legal_cache.update(game_state, moves)
+        self.legal_cache.update(game_state, moves)
         return moves
 
     def is_valid_move(self, game_state, x, y):
@@ -112,9 +117,7 @@ class Reversi:
         if piece != EMPTY:
             return False
 
-        opponent = BLACK
-        if color == BLACK:
-            opponent = WHITE
+        enemy = opponent[color]
 
         # now check in all directions, including diagonal
         for dy in range(-1, 2):
@@ -128,7 +131,7 @@ class Reversi:
                 yp = (distance * dy) + y
                 xp = (distance * dx) + x
 
-                while board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == opponent:
+                while board.is_in_bounds(xp, yp) and board.piece_at(xp, yp) == enemy:
                     distance += 1
                     yp = (distance * dy) + y
                     xp = (distance * dx) + x
@@ -195,8 +198,11 @@ class Reversi:
         return self.get_board().is_full() or (len(self.legal_black_moves) == 0 and len(self.legal_white_moves) == 0)
 
     def winner(self, game_state):
-        """Given a game_state, is the game over, and who won?"""
+        """Given a game_state, return the color of the winner if there is one,
+        otherwise return False to indicate the game isn't won yet."""
         board = game_state[0]
+
+        # a full board means no more moves can be made, game over.
         if board.is_full():
             black_count, white_count = board.get_stone_counts()
             if black_count > white_count:
@@ -204,10 +210,11 @@ class Reversi:
             else:
                 # tie goes to white
                 return WHITE
+
+        # a non-full board can still be game-over if neither player can move.
         black_legal = self.get_legal_moves((game_state[0], BLACK))
         white_legal = self.get_legal_moves((game_state[0], WHITE))
-
-        if len(black_legal) == 0 and len(white_legal) == 0:
+        if not black_legal and not white_legal:
             black_count, white_count = board.get_stone_counts()
             if black_count > white_count:
                 return BLACK
@@ -215,6 +222,7 @@ class Reversi:
                 # tie goes to white
                 return WHITE
         else:
+            # game isn't over yet
             return False
 
     def update_legal_moves(self, game_state):

@@ -1,26 +1,24 @@
-import numpy as np
 import hashlib
 from util import *
 
 
 class Board:
 
-    def __init__(self, dimens):
-        self.dimens = dimens
-        assert len(dimens) == 2 and dimens[0] == dimens[1]
-        assert dimens[0] >= 4 and dimens[0] % 2 == 0
-        # self.board = np.zeros(self.dimens, dtype=np.int8)
-        self.board = [[0 for _ in range(self.dimens[0])] for _ in range(self.dimens[0])]
+    def __init__(self, size):
+        self.size = size
+        assert size >= 4 and size % 2 == 0
+        self.board = [[0 for _ in range(self.size)]
+                      for _ in range(self.size)]
         self.black_stones = 0
         self.white_stones = 0
 
     def init_starting_position(self):
         # place the 4 starting stones in the center.
-        midpoint = int(self.dimens[0] / 2)
+        midpoint = int(self.size / 2)
         lower = midpoint - 1
         higher = midpoint
-        # self.board = np.zeros(self.dimens, dtype=np.int8)
-        self.board = [[0 for _ in range(self.dimens[0])] for _ in range(self.dimens[0])]
+        self.board = [[0 for _ in range(self.size)]
+                      for _ in range(self.size)]
         self.board[lower][lower] = BLACK
         self.board[higher][lower] = WHITE
         self.board[lower][higher] = WHITE
@@ -51,27 +49,26 @@ class Board:
         return self.black_stones, self.white_stones
 
     def is_full(self):
-        return self.black_stones + self.white_stones == (self.dimens[0] ** 2)
+        return self.black_stones + self.white_stones == (self.size ** 2)
 
-    def get_dimensions(self):
-        return self.dimens[0]
+    def get_size(self):
+        return self.size
 
     def get_board(self):
         """Return the raw board.  Try to avoid this if you can use the other getters."""
         return self.board
 
     def is_in_bounds(self, x, y):
-        return 0 <= x < self.dimens[0] and 0 <= y < self.dimens[0]
+        return 0 <= x < self.size and 0 <= y < self.size
 
     def piece_at(self, x, y):
         return self.board[y][x]
 
     def __str__(self):
         result = ''
-        height, width = np.shape(self.board)
-        for y in range(height - 1, -1, -1):
+        for y in range(self.size - 1, -1, -1):
             result += str(y) + ' '
-            for x in range(width):
+            for x in range(self.size):
                 if self.board[y][x] == WHITE:
                     result += 'O '
                 elif self.board[y][x] == BLACK:
@@ -83,7 +80,7 @@ class Board:
             result += '\n'
 
         result += '  '
-        for x in range(width):
+        for x in range(self.size):
             result += str(x) + ' '
         result += '\n'
 
@@ -93,17 +90,6 @@ class Board:
         return self.__str__()
 
     def __hash__(self):
-        # return hash(str(self.board))
-        # return hash(self.board.tostring())
-        # return hash(self.board.data.tobytes())
-        # int_view = self.board.view(np.uint8)
-        # hex = hashlib.md5(int_view).hexdigest()
-        # return hashlib.md5(int_view)
-        # return hash(hex)
-        # return
-        # int.from_bytes(hashlib.md5(self.board.data.tobytes()).digest(),
-        # byteorder='little')
-        # return int.from_bytes(hashlib.md5(self.board.tostring()).digest(), byteorder='little')
         return hash(str(self.board))
 
     def __eq__(self, other):
@@ -111,6 +97,4 @@ class Board:
             return False
         if self.white_stones != other.white_stones:
             return False
-        # return self.board.all() == other.board.all()
-        # return self.board.tostring() == other.board.tostring()
         return self.board == other.board

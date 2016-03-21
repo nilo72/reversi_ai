@@ -8,7 +8,7 @@ from util import *
 
 def main():
 
-    board_size = (8, 8)
+    board_size = 8
     bot_time = 10 
     agent_args = {
         'BlackAgent': monte_carlo_agent.MonteCarloAgent,

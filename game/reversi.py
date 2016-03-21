@@ -14,7 +14,7 @@ class Reversi:
     def __init__(self, dimens, BlackAgent=RandomAgent, WhiteAgent=RandomAgent, **kwargs):
         board = Board(dimens)
         board.init_starting_position()
-        self.dimensions = board.get_dimensions()
+        self.size = board.get_size()
 
         self.game_state = (board, BLACK)
 
@@ -63,8 +63,8 @@ class Reversi:
         # figure out who won
         white_count = 0
         black_count = 0
-        for y in range(self.dimensions):
-            for x in range(self.dimensions):
+        for y in range(self.size):
+            for x in range(self.size):
                 piece = self.get_board().piece_at(x, y)
                 if piece == WHITE:
                     white_count += 1
@@ -103,7 +103,7 @@ class Reversi:
         #    return cached
 
         board = game_state[0]
-        board_size = board.get_dimensions()
+        board_size = self.size
         moves = []  # list of x,y positions valid for color
 
         for y in range(board_size):

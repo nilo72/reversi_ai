@@ -9,14 +9,14 @@ from util import *
 def main():
 
     board_size = (8, 8)
-    bot_time = 5 
+    bot_time = 10 
     agent_args = {
-        'BlackAgent': q_learning_agent.QLearningAgent,
+        'BlackAgent': monte_carlo_agent.MonteCarloAgent,
         'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
         'print': False,
         'white_time': bot_time,
         'black_time': bot_time,
-        'learn': 100
+        'episodes': 200
     }
 
     amount = 1

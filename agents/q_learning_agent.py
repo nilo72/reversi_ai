@@ -44,6 +44,7 @@ class QLearningAgent(Agent):
                     best_q_val = q_val
                 elif q_val == best_q_val:
                     best_actions.append(action)
+            print('best val: {}'.format(best_q_val))
         elif self.color == WHITE:
             best_q_val = float('inf')
             for action in legal_actions:
@@ -77,14 +78,18 @@ class QLearningAgent(Agent):
         update our q-value estimation for this state.
         
         See here: http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.109.4577&rep=rep1&type=pdf"""
+        if reward != 0:
+            pass
         legal_actions = self.reversi.get_legal_moves(next_state)
         value = reward
         if legal_actions:
-            max_q = max(self.get_q_val(next_state, action)
-                        for action in legal_actions)
+            max_q = max(self.get_q_val(next_state, next_action)
+                        for next_action in legal_actions)
             value += (self.discount * max_q)
-        self.q_vals[(state, action)] = (1 - self.alpha) * \
-            self.get_q_val(state, action) + (self.alpha * value)
+
+        old_q_val = self.get_q_val(state, action)
+        new_q_val = (1 - self.alpha) * old_q_val + (self.alpha * value)
+        self.q_vals[(state, action)] = new_q_val
 
     def pkl(self):
         f = gzip.open('qlearned.pkl', 'wb')
@@ -105,14 +110,14 @@ class QLearningAgent(Agent):
             print("couldn't open qlearn database! using empty qvalue map.")
 
     def learn(self, num_games):
-        dimensions = (8, 8)
+        dimensions = (4, 4)
         self.alpha = 0.1
         self.discount = 1.0
         self.color = BLACK
         # probability to take a random action
         self.explore = 0.05
         for t in range(1, num_games + 1):
-            print('starting episode {}'.format(t))
+            print('starting episode {}/{}'.format(t, num_games))
             self.reversi = Reversi(dimensions)
             reversi = self.reversi
             state = reversi.get_state()
@@ -120,25 +125,59 @@ class QLearningAgent(Agent):
 
             # run a simulation "episode".  A win for black gives reward 1,
             # a win for white gives reward -1, all else is 0.
-            while True:
-                legal_actions = self.reversi.get_legal_moves(state)
-                best_action = self.get_action(state, legal_actions)
-                if best_action is None:
-                    break
-                next_state = reversi.next_state(state, *best_action)
-                reward = 0
-                winner = reversi.winner(next_state)
-                if winner == BLACK:
-                    reward = 1
-                elif winner == WHITE:
-                    reward = -1
-                self.update(state, best_action, next_state, reward)
-
-                state = next_state
-
-                if winner is not False:
+            while not reversi.winner(state):
+                state = self.black_move(reversi, state)
+                if not state:
                     break
             print('episode {} complete'.format(t))
+
+    @staticmethod
+    def winner_reward(winner):
+        if winner == BLACK:
+            return 10
+        elif winner == WHITE:
+            return -10
+        return 0
+
+    def white_move(self, reversi, state):
+        """Makes a move for white, and returns the resulting
+        state.  If there are no actions it can take, it returns the
+        initial state, but passes its turn to black."""
+        assert state[1] == WHITE
+        legal_actions = reversi.get_legal_moves(state)
+        if not legal_actions:
+            # turn passes to black
+            state = (state[0], BLACK)
+            return state
+        picked = random.choice(legal_actions)
+        return reversi.next_state(state, *picked)
+
+    def black_move(self, reversi, state):
+        """Make black's move, then make white's move,
+        then returns the resulting state."""
+        assert state[1] == BLACK
+
+        # Make Black's move.
+        legal_actions = reversi.get_legal_moves(state)
+        if not legal_actions:
+            # turn passes to white if we have no moves
+            state = (state[0], WHITE)
+            return self.white_move(reversi, state)
+        best_action = self.get_action(state, legal_actions)
+        next_state = reversi.next_state(state, *best_action)
+        winner = reversi.winner(next_state)
+        reward = self.winner_reward(winner)
+        if winner:
+            self.update(state, best_action, next_state, reward)
+            return None
+        opponent_move = self.white_move(reversi, next_state)
+        winner = reversi.winner(opponent_move)
+        reward = self.winner_reward(winner)
+        self.update(state, best_action, opponent_move, reward)
+        if winner:
+            return None
+
+        return opponent_move
         # self.pkl()
 
 

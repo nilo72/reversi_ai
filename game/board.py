@@ -1,5 +1,7 @@
 import numpy as np
+import hashlib
 from util import *
+
 
 class Board:
 
@@ -85,8 +87,26 @@ class Board:
 
         return result
 
+    def __repr__(self):
+        return self.__str__()
+
     def __hash__(self):
-        return hash(str(self.board))
+        # return hash(str(self.board))
+        # return hash(self.board.tostring())
+        # return hash(self.board.data.tobytes())
+        # int_view = self.board.view(np.uint8)
+        # hex = hashlib.md5(int_view).hexdigest()
+        # return hashlib.md5(int_view)
+        # return hash(hex)
+        # return
+        # int.from_bytes(hashlib.md5(self.board.data.tobytes()).digest(),
+        # byteorder='little')
+        return int.from_bytes(hashlib.md5(self.board.tostring()).digest(), byteorder='little')
 
     def __eq__(self, other):
+        if self.black_stones != other.black_stones:
+            return False
+        if self.white_stones != other.white_stones:
+            return False
         return self.board.all() == other.board.all()
+        # return self.board.tostring() == other.board.tostring()

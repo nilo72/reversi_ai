@@ -5,6 +5,7 @@ from game.board import Board, BLACK, WHITE, EMPTY
 from agents.human_agent import HumanAgent
 from agents.random_agent import RandomAgent
 from util import *
+from cache_dict import CacheDict
 
 
 class Reversi:
@@ -16,6 +17,10 @@ class Reversi:
         self.dimensions = board.get_dimensions()
 
         self.game_state = (board, BLACK)
+
+        self.legal_cache = CacheDict()
+        # self.valid_cache = CacheDict()
+        # self.winner_cache = CacheDict()
 
         black_time = kwargs.get('black_time', 5)
         white_time = kwargs.get('white_time', 5)
@@ -93,6 +98,10 @@ class Reversi:
         return picked
 
     def get_legal_moves(self, game_state):
+        # cached = self.legal_cache.get(game_state)
+        # if cached is not None:
+        #    return cached
+
         board = game_state[0]
         board_size = board.get_dimensions()
         moves = []  # list of x,y positions valid for color
@@ -102,6 +111,7 @@ class Reversi:
                 if self.is_valid_move(game_state, x, y):
                     moves.append((x, y))
 
+        # self.legal_cache.update(game_state, moves)
         return moves
 
     def is_valid_move(self, game_state, x, y):
@@ -233,3 +243,6 @@ class Reversi:
     def get_state(self):
         """Returns a tuple representing the board state."""
         return self.game_state
+
+    def __str__(self):
+        return str(self.board)

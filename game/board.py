@@ -9,26 +9,28 @@ class Board:
         self.dimens = dimens
         assert len(dimens) == 2 and dimens[0] == dimens[1]
         assert dimens[0] >= 4 and dimens[0] % 2 == 0
-        self.board = np.zeros(self.dimens, dtype=np.int8)
+        # self.board = np.zeros(self.dimens, dtype=np.int8)
+        self.board = [[0 for _ in range(self.dimens[0])] for _ in range(self.dimens[0])]
         self.black_stones = 0
         self.white_stones = 0
 
     def init_starting_position(self):
         # place the 4 starting stones in the center.
-        midpoint = self.dimens[0] / 2
+        midpoint = int(self.dimens[0] / 2)
         lower = midpoint - 1
         higher = midpoint
-        self.board = np.zeros(self.dimens, dtype=np.int8)
-        self.board[lower, lower] = BLACK
-        self.board[higher, lower] = WHITE
-        self.board[lower, higher] = WHITE
-        self.board[higher, higher] = BLACK
+        # self.board = np.zeros(self.dimens, dtype=np.int8)
+        self.board = [[0 for _ in range(self.dimens[0])] for _ in range(self.dimens[0])]
+        self.board[lower][lower] = BLACK
+        self.board[higher][lower] = WHITE
+        self.board[lower][higher] = WHITE
+        self.board[higher][higher] = BLACK
 
         self.black_stones = 2
         self.white_stones = 2
 
     def place_stone_at(self, color, x, y):
-        self.board[y, x] = color
+        self.board[y][x] = color
         if color == WHITE:
             self.white_stones += 1
         elif color == BLACK:
@@ -62,7 +64,7 @@ class Board:
         return 0 <= x < self.dimens[0] and 0 <= y < self.dimens[0]
 
     def piece_at(self, x, y):
-        return self.board[y, x]
+        return self.board[y][x]
 
     def __str__(self):
         result = ''
@@ -70,11 +72,11 @@ class Board:
         for y in range(height - 1, -1, -1):
             result += str(y) + ' '
             for x in range(width):
-                if self.board[y, x] == WHITE:
+                if self.board[y][x] == WHITE:
                     result += 'O '
-                elif self.board[y, x] == BLACK:
+                elif self.board[y][x] == BLACK:
                     result += 'X '
-                elif self.board[y, x] == EMPTY:
+                elif self.board[y][x] == EMPTY:
                     result += '- '
                 else:
                     result += '? '
@@ -101,12 +103,14 @@ class Board:
         # return
         # int.from_bytes(hashlib.md5(self.board.data.tobytes()).digest(),
         # byteorder='little')
-        return int.from_bytes(hashlib.md5(self.board.tostring()).digest(), byteorder='little')
+        # return int.from_bytes(hashlib.md5(self.board.tostring()).digest(), byteorder='little')
+        return hash(str(self.board))
 
     def __eq__(self, other):
         if self.black_stones != other.black_stones:
             return False
         if self.white_stones != other.white_stones:
             return False
-        return self.board.all() == other.board.all()
+        # return self.board.all() == other.board.all()
         # return self.board.tostring() == other.board.tostring()
+        return self.board == other.board

@@ -7,7 +7,7 @@ class Board:
     def __init__(self, size):
         self.size = size
         assert size >= 4 and size % 2 == 0
-        self.board = [[0 for _ in range(self.size)]
+        self.board = [[EMPTY for _ in range(self.size)]
                       for _ in range(self.size)]
         self.black_stones = 0
         self.white_stones = 0
@@ -17,7 +17,7 @@ class Board:
         midpoint = int(self.size / 2)
         lower = midpoint - 1
         higher = midpoint
-        self.board = [[0 for _ in range(self.size)]
+        self.board = [[EMPTY for _ in range(self.size)]
                       for _ in range(self.size)]
         self.board[lower][lower] = BLACK
         self.board[higher][lower] = WHITE

@@ -11,17 +11,17 @@ from cache_dict import CacheDict
 class Reversi:
     """This class enforces the rules of the game of Reversi."""
 
-    def __init__(self, dimens, BlackAgent=RandomAgent, WhiteAgent=RandomAgent, **kwargs):
-        board = Board(dimens)
-        board.init_starting_position()
-        self.size = board.get_size()
+    def __init__(self, size, BlackAgent=RandomAgent, WhiteAgent=RandomAgent, **kwargs):
+        self.size = size
+        self.board = Board(self.size)
+        self.board.init_starting_position()
 
-        self.game_state = (board, BLACK)
-
-        self.legal_cache = CacheDict()
+        # game state is a 2-tuple of the board state, and which player's turn
+        # it is.
+        self.game_state = (self.board, BLACK)
+        # self.legal_cache = CacheDict()
         # self.valid_cache = CacheDict()
         # self.winner_cache = CacheDict()
-
         black_time = kwargs.get('black_time', 5)
         white_time = kwargs.get('white_time', 5)
         self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)
@@ -46,7 +46,7 @@ class Reversi:
             else:
                 raise ValueError
 
-            if len(legal_moves) == 0:
+            if not legal_moves:
                 print('{} had no moves, and passed their turn.'.format(
                     color_name[turn_color]))
                 self.game_state = (game_state[0], opponent[turn_color])
@@ -61,17 +61,8 @@ class Reversi:
         self.print_board()
 
         # figure out who won
-        white_count = 0
-        black_count = 0
-        for y in range(self.size):
-            for x in range(self.size):
-                piece = self.get_board().piece_at(x, y)
-                if piece == WHITE:
-                    white_count += 1
-                elif piece == BLACK:
-                    black_count += 1
-
-        winner = WHITE if white_count > black_count else BLACK
+        black_count, white_count = self.board.get_stone_counts()
+        winner = BLACK if black_count > white_count else WHITE
         return winner, white_count, black_count
 
     def print_board(self):
@@ -211,7 +202,7 @@ class Reversi:
             if black_count > white_count:
                 return BLACK
             else:
-                # tie goes to white (for now)
+                # tie goes to white
                 return WHITE
         black_legal = self.get_legal_moves((game_state[0], BLACK))
         white_legal = self.get_legal_moves((game_state[0], WHITE))
@@ -221,7 +212,7 @@ class Reversi:
             if black_count > white_count:
                 return BLACK
             else:
-                # tie goes to white (for now)
+                # tie goes to white
                 return WHITE
         else:
             return False

@@ -87,7 +87,7 @@ class Reversi:
 
         return picked
 
-    def get_legal_moves(self, game_state, force_cache=False):
+    def legal_moves(self, game_state, force_cache=False):
         if force_cache:
             return self.legal_cache.get(game_state)
 
@@ -201,7 +201,7 @@ class Reversi:
     def winner(self, game_state):
         """Given a game_state, return the color of the winner if there is one,
         otherwise return False to indicate the game isn't won yet.
-        Note that get_legal_moves() is a slow operation, so this method
+        Note that legal_moves() is a slow operation, so this method
         tries to call it as few times as possible."""
         board = game_state[0]
         black_count, white_count = board.get_stone_counts()
@@ -215,11 +215,11 @@ class Reversi:
                 return WHITE
 
         # a non-full board can still be game-over if neither player can move.
-        black_legal = self.get_legal_moves((game_state[0], BLACK))
+        black_legal = self.legal_moves((game_state[0], BLACK))
         if black_legal:
             return False
 
-        white_legal = self.get_legal_moves((game_state[0], WHITE))
+        white_legal = self.legal_moves((game_state[0], WHITE))
         if white_legal:
             return False
 
@@ -231,7 +231,7 @@ class Reversi:
             return WHITE
 
     def update_legal_moves(self, game_state):
-        legal_moves = self.get_legal_moves(game_state)
+        legal_moves = self.legal_moves(game_state)
         color = game_state[1]
         if color == WHITE:
             self.legal_white_moves = legal_moves

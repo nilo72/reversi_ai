@@ -17,10 +17,12 @@ class MonteCarloAgent(Agent):
         self.reversi = reversi
         self.print_info = kwargs.get('print', False)
         self.sim_time = kwargs.get('time', 5)
+
+        # map states to nodes for quick lookup
         self.state_node = {}
 
     def get_action(self, game_state, legal_moves):
-        # always make sure you are getting a deep copy
+        # make a deep copy to keep the promise that we won't mutate
         game_state = copy.deepcopy(game_state)
         move = self.monte_carlo_search(game_state)
         return move

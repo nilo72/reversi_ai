@@ -88,6 +88,10 @@ class Reversi:
         return picked
 
     def legal_moves(self, game_state, force_cache=False):
+        # Note: this is a very naive and inefficient way to find
+        # all available moves by brute force.  I am sure there is a
+        # more clever way to do this.  If you want better performance
+        # from agents, this would probably be the first area to improve.
         if force_cache:
             return self.legal_cache.get(game_state)
 

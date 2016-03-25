@@ -10,7 +10,7 @@ class HumanAgent(Agent):
     def get_action(self, game_state, legal_moves):
         choice = None
         while True:
-            raw_choice = input('Enter a move x,y (or pass to pass): ')
+            raw_choice = input('Enter a move x,y: ')
             if raw_choice == 'pass':
                 return None
             if raw_choice == 'exit' or raw_choice == 'quit':

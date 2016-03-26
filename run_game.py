@@ -12,7 +12,7 @@ def main():
     bot_time = 10
     agent_args = {
         'BlackAgent': monte_carlo_agent.MonteCarloAgent,
-        'WhiteAgent': random_agent.RandomAgent,
+        'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
         'print': False,
         'white_time': 1,
         'black_time': 3,

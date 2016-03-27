@@ -10,9 +10,8 @@ class RandomAgent(Agent):
         self.reversi = reversi
         self.color = color
 
-    def get_action(self, game_state):
-        legal_moves = self.reversi.legal_moves(game_state)
-        print('legal moves for {}: {}'.format(color_name[self.color], legal_moves))
+    def get_action(self, state):
+        legal_moves = self.reversi.legal_moves(state)
         if not legal_moves:
             return None
         return random.choice(legal_moves)

@@ -1,4 +1,5 @@
 import random
+import os.path
 from copy import deepcopy
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
@@ -12,24 +13,46 @@ from util import *
 from numpy import array
 import pdb
 
-MODEL_FILENAME = 'q-model.json'
-WEIGHTS_FILENAME = 'q_weights.h5'
+MODEL_FILENAME = 'q_model_b.json'
+WEIGHTS_FILENAME = 'q_weights_b.h5'
 
 class QLearningAgent(Agent):
 
-    def __init__(self, reversi, color):
+    def __init__(self, reversi, color, **kwargs):
         self.reversi = reversi
         self.color = color
+        self.board_size = self.reversi.board.get_size()
 
-    def get_action(self, game_state, legal_moves):
-        if not legal_moves:
+        # initialize the model
+        self.model = self.get_model()
+        self.model.compile(loss='mse', optimizer=RMSprop())
+
+        if os.path.exists(WEIGHTS_FILENAME):
+            print('loading existing weights file {}'.format(WEIGHTS_FILENAME))
+            self.model.load_weights(WEIGHTS_FILENAME)
+
+    def get_action(self, game_state):
+        return self.policy(game_state)
+
+    def policy(self, game_state):
+        legal = self.reversi.legal_moves(game_state)
+        if not legal:
             return None
 
-        return self.policy(game_state, legal_moves)
+        # ask neural network for best valued action
+        q_vals = self.model.predict(self.numpify(game_state), batch_size = 1)
+        best_move = None
+        best_val = -float('inf')
+        for move in legal:
+            offset = self.to_offset(move[0], move[1], self.board_size)
+            val = q_vals[0][offset]
+            if val > best_val:
+                best_val = val
+                best_move = move
 
-    def policy(self, game_state, legal_moves):
-        # run through neural network, return best move
-        pass
+        return move
+
+
 
     def update_model(self, model, q_vals, state, action, new_state, reward):
         """
@@ -64,7 +87,7 @@ class QLearningAgent(Agent):
         q_vals[0][move_offset] = (1 - self.alpha) * q_vals[0][move_offset] + \
                 self.alpha * (reward + best_q)
 
-        model.fit(self.numpify(state), q_vals, batch_size=1, nb_epoch=1,verbose=1)
+        model.fit(self.numpify(state), q_vals, batch_size=1, nb_epoch=1,verbose=0)
 
     @staticmethod
     def numpify(state):
@@ -73,23 +96,20 @@ class QLearningAgent(Agent):
         board = state[0].board
         assert len(board) > 0
         size = len(board) * len(board[0])
-        if size != 16:
-            print('wtf, size was {}'.format(size))
         return array(board).reshape(1, size)
 
 
 
     def train(self, epochs):
-        model = self.get_model()
-        model.compile(loss='mse', optimizer=RMSprop())
-        model.load_weights(WEIGHTS_FILENAME)
-
+        model = self.model
         self.board_size = self.reversi.board.get_size()
 
         self.alpha = 0.8
-        self.epsilon = 0.05
+        self.epsilon = 0.2
 
         wins = []
+        WIN_REWARD = 1
+        LOSE_REWARD = 0
 
         for i in range(1, epochs + 1):
             print('starting epoch {}'.format(i))
@@ -110,12 +130,13 @@ class QLearningAgent(Agent):
                 # white and black take turns until game is over
                 # we break out when game is over
                 if state[1] == WHITE:
-                    # what's turn
+                    # white's turn
                     legal = self.reversi.legal_moves(state)
                     move = None
                     if legal:
                         move = random.choice(legal)
                     state = self.reversi.next_state(state, move)
+                    assert(state[1] == BLACK)
 
                 elif state[1] == BLACK:
                     # it's black's turn
@@ -126,9 +147,9 @@ class QLearningAgent(Agent):
                         reward = 0
                         winner = self.reversi.winner(state)
                         if winner == BLACK:
-                            reward = 1
+                            reward = WIN_REWARD
                         elif winner == WHITE:
-                            reward = 0 # todo: try playing with this
+                            reward = LOSE_REWARD
                         elif winner is not False:
                             raise ValueError
 
@@ -156,16 +177,17 @@ class QLearningAgent(Agent):
                         old_qs = q_vals
                         prev_action = best_move
                     state = self.reversi.next_state(state, best_move)
-
+                    assert(state[1] == WHITE)
 
 
         print('training complete.')
         print('summary:')
         black_wins = len([win for win in wins if win == BLACK])
         white_wins = len([win for win in wins if win == WHITE])
-        print(' black: {}'.format(black_wins))
-        print(' white: {}'.format(white_wins))
-        model.save_weights(WEIGHTS_FILENAME)
+        print(' black: {} ({})'.format(black_wins, black_wins / (black_wins + white_wins)))
+        print(' white: {} ({})'.format(white_wins, white_wins / (black_wins + white_wins)))
+        model.save_weights(WEIGHTS_FILENAME, overwrite=True)
+        self.save_model(model)
 
     @staticmethod
     def to_offset(x, y, width):
@@ -183,13 +205,15 @@ class QLearningAgent(Agent):
         model = None
         try:
             model = model_from_json(open(MODEL_FILENAME).read())
+            print('loading existing model file {}'.format(MODEL_FILENAME))
         except FileNotFoundError:
+            print('no existing model file found, generating new model')
             model = Sequential()
-            model.add(Dense(164, init='lecun_uniform', input_shape=(16,)))
+            model.add(Dense(256, init='lecun_uniform', input_shape=(16,)))
             model.add(Activation('relu'))
             # model.add(Dropout(0.2))
 
-            model.add(Dense(150, init='lecun_uniform'))
+            model.add(Dense(256, init='lecun_uniform'))
             model.add(Activation('relu'))
             # model.add(Dropout(0.2))
 
@@ -204,5 +228,5 @@ class QLearningAgent(Agent):
         as_json = model.to_json()
         with open(MODEL_FILENAME, 'w') as f:
             f.write(as_json)
-            print('model saved to {}'.format(filename))
+            print('model saved to {}'.format(MODEL_FILENAME))
 

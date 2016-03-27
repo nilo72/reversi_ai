@@ -9,13 +9,13 @@ from util import *
 def main():
 
     board_size = 8
-    bot_time = 10
+    bot_time = 1  
     agent_args = {
         'BlackAgent': monte_carlo_agent.MonteCarloAgent,
         'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
         'print': False,
-        'white_time': 1,
-        'black_time': 3,
+        'white_time': bot_time,
+        'black_time': bot_time,
         'episodes': 200
     }
 
@@ -37,10 +37,10 @@ def main():
     summary = []
     white_wins = 0
     black_wins = 0
+    reversi = Reversi(board_size, **agent_args)
     start = time.time()
     for t in range(1, amount + 1):
         print('starting game {} of {}'.format(t, amount))
-        reversi = Reversi(board_size, **agent_args)
         winner, white_score, black_score = reversi.play_game()
         if winner == WHITE:
             white_wins += 1
@@ -51,6 +51,7 @@ def main():
             color_name[winner], white_score, black_score)
         print(message)
         summary.append(message)
+        reversi.reset()
 
     print('time: {} minutes'.format((time.time() - start) / 60))
     print('summary: {} games played'.format(len(summary)))

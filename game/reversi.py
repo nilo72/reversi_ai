@@ -29,42 +29,25 @@ class Reversi:
         self.game_state = (self.board, BLACK)
         self.legal_cache = CacheDict()
 
-        # storing legal moves allows us to avoid needlessly recalculating them
-        self.legal_white_moves = []
-        self.legal_black_moves = []
-
 
     def play_game(self):
-        self.update_legal_moves(self.get_state())
-        while not self.is_won():
-            self.print_board(self.get_state())
-            game_state = self.get_state()
-            turn_color = game_state[1]
-            self.update_legal_moves(game_state)
-            legal_moves = None
-            if turn_color == BLACK:
-                legal_moves = self.legal_black_moves
-            elif turn_color == WHITE:
-                legal_moves = self.legal_white_moves
+        state = self.get_state()
+        self.print_board(state)
+        print()
+        while self.winner(state) is False:
+            color = state[1]
+            picked = self.agent_pick_move(state)
+            state = self.apply_move(state, picked)
+            self.print_board(state)
+            if not picked:
+                print('{} had no moves and passed their turn.'.format(color_name[color]))
             else:
-                raise ValueError
-
-            if not legal_moves:
-                print('{} had no moves, and passed their turn.'.format(
-                    color_name[turn_color]))
-                self.game_state = (game_state[0], opponent[turn_color])
-                continue
-            else:
-                picked = self.agent_pick_move(game_state, legal_moves)
-                print('{} plays at {}'.format(
-                    color_name[turn_color], str(picked)))
-            updated_game_state = self.apply_move(
-                game_state, picked[0], picked[1])
-            self.game_state = updated_game_state
-        self.print_board(self.get_state())
+                print('{} plays at {}'.format(color_name[color], str(picked)))
+            print()
+        self.print_board(state)
 
         # figure out who won
-        black_count, white_count = self.board.get_stone_counts()
+        black_count, white_count = state[0].get_stone_counts()
         winner = BLACK if black_count > white_count else WHITE
         return winner, white_count, black_count
 
@@ -73,23 +56,22 @@ class Reversi:
         board = state[0]
         print(board)
 
-    def agent_pick_move(self, game_state, legal_moves):
+    def agent_pick_move(self, state):
+        color = state[1]
+        legal_moves = self.legal_moves(state)
         picked = None
-        color = game_state[1]
-        while picked not in legal_moves:
-            if color == WHITE:
-                picked = self.white_agent.get_action(
-                    self.get_state(), legal_moves)
-            elif color == BLACK:
-                picked = self.black_agent.get_action(
-                    self.get_state(), legal_moves)
-            else:
-                raise ValueError
+        if color == WHITE:
+            picked = self.white_agent.get_action(state)
+        elif color == BLACK:
+            picked = self.black_agent.get_action(state)
+        else:
+            raise ValueError
 
-            if picked is None:
-                return None
-            elif picked not in legal_moves:
-                print(str(picked) + ' is not a legal move!')
+        if picked is None:
+            return None
+        elif picked not in legal_moves:
+            print(str(picked) + ' is not a legal move! Game over.')
+            quit()
 
         return picked
 
@@ -211,10 +193,6 @@ class Reversi:
 
         return game_state
 
-    def is_won(self):
-        """The game is over when neither player can make a move."""
-        return self.get_board().is_full() or (len(self.legal_black_moves) == 0 and len(self.legal_white_moves) == 0)
-
     def winner(self, game_state):
         """Given a game_state, return the color of the winner if there is one,
         otherwise return False to indicate the game isn't won yet.
@@ -247,16 +225,6 @@ class Reversi:
             # tie goes to white
             return WHITE
 
-    def update_legal_moves(self, game_state):
-        legal_moves = self.legal_moves(game_state)
-        color = game_state[1]
-        if color == WHITE:
-            self.legal_white_moves = legal_moves
-        elif color == BLACK:
-            self.legal_black_moves = legal_moves
-        else:
-            raise ValueError
-
     def get_board(self):
         """Return the board from the current game_state."""
         return self.game_state[0]
@@ -265,5 +233,3 @@ class Reversi:
         """Returns a tuple representing the board state."""
         return self.game_state
 
-    def __str__(self):
-        return str(self.board)

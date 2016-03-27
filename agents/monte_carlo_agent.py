@@ -20,12 +20,15 @@ class MonteCarloAgent(Agent):
         # map states to nodes for quick lookup
         self.state_node = {}
 
-    def get_action(self, game_state, legal_moves):
+    def get_action(self, game_state):
         """Interface from class Agent.  Given a game state
         and a set of legal moves, pick a legal move and return it.
         This will be called by the Reversi game object. Does not mutate
         the game state argument."""
         # make a deep copy to keep the promise that we won't mutate
+        legal_moves = self.reversi.legal_moves(game_state)
+        if not legal_moves:
+            return None
         game_state = copy.deepcopy(game_state)
         move = self.monte_carlo_search(game_state)
         return move
@@ -130,7 +133,7 @@ class MonteCarloAgent(Agent):
 
                 assert len(unexpanded) > 0
                 move = random.choice(unexpanded)
-                state = self.reversi.next_state(cur_node.game_state, *move)
+                state = self.reversi.next_state(cur_node.game_state, move)
                 n = Node(state, move)
                 cur_node.add_child(n)
                 self.state_node[state] = n
@@ -180,7 +183,7 @@ class MonteCarloAgent(Agent):
                 moves = self.reversi.legal_moves(state)
 
             picked = random.choice(moves)
-            state = self.reversi.apply_move(state, *picked)
+            state = self.reversi.apply_move(state, picked)
 
     def info(self, s):
         if self.print_info:

@@ -11,7 +11,6 @@ from agents.random_agent import RandomAgent
 
 from util import *
 from numpy import array
-import pdb
 
 MODEL_FILENAME = 'q_model_b.json'
 WEIGHTS_FILENAME = 'q_weights_b.h5'
@@ -22,6 +21,7 @@ class QLearningAgent(Agent):
         self.reversi = reversi
         self.color = color
         self.board_size = self.reversi.board.get_size()
+        self.kwargs = kwargs
 
         # initialize the model
         self.model = self.get_model()
@@ -51,8 +51,6 @@ class QLearningAgent(Agent):
                 best_move = move
 
         return move
-
-
 
     def update_model(self, model, q_vals, state, action, new_state, reward):
         """
@@ -105,7 +103,7 @@ class QLearningAgent(Agent):
         self.board_size = self.reversi.board.get_size()
 
         self.alpha = 0.8
-        self.epsilon = 0.2
+        self.epsilon = 0.1 
 
         wins = []
         WIN_REWARD = 1
@@ -115,9 +113,6 @@ class QLearningAgent(Agent):
             print('starting epoch {}'.format(i))
             self.reversi.reset()
             state = deepcopy(self.reversi.get_state())
-            print('starting state:')
-            self.reversi.print_board(state)
-            print()
 
             prev_action = None
             old_qs = None
@@ -162,23 +157,28 @@ class QLearningAgent(Agent):
                     # now make our move based on highest legal q_val
                     q_vals = model.predict(self.numpify(state), batch_size = 1)
                     legal = self.reversi.legal_moves(state)
-                    best_move = None
-                    best_q = -float('inf')
-                    for each in legal:
-                        offset = self.to_offset(each[0], each[1], self.board_size)
-                        if q_vals[0][offset] > best_q:
-                            best_move = each
-                            best_q = q_vals[0][offset]
+
+                    move = None
+                    if random.random() < self.epsilon:
+                        # epsilon greedy, pick random move
+                        if legal:
+                            move = random.choice(legal)
+                    else:
+                        best_q = -float('inf')
+                        for each in legal:
+                            offset = self.to_offset(each[0], each[1], self.board_size)
+                            if q_vals[0][offset] > best_q:
+                                move = each
+                                best_q = q_vals[0][offset]
 
                     # make our move, saving old values for next network refit
                     if legal:
                         # if we had a move and took it
                         prev_state = state
                         old_qs = q_vals
-                        prev_action = best_move
-                    state = self.reversi.next_state(state, best_move)
+                        prev_action = move
+                    state = self.reversi.next_state(state, move)
                     assert(state[1] == WHITE)
-
 
         print('training complete.')
         print('summary:')
@@ -198,24 +198,23 @@ class QLearningAgent(Agent):
         offset += x
         return offset
 
-    @staticmethod
-    def get_model():
+    def get_model(self):
         """Load the model from disk, or create a new one
         if none is found on disk."""
         model = None
         try:
+            if self.kwargs['remake_model']:
+                raise FileNotFoundError
             model = model_from_json(open(MODEL_FILENAME).read())
             print('loading existing model file {}'.format(MODEL_FILENAME))
         except FileNotFoundError:
-            print('no existing model file found, generating new model')
+            print('generating new model')
             model = Sequential()
             model.add(Dense(256, init='lecun_uniform', input_shape=(16,)))
             model.add(Activation('relu'))
-            # model.add(Dropout(0.2))
 
             model.add(Dense(256, init='lecun_uniform'))
             model.add(Activation('relu'))
-            # model.add(Dropout(0.2))
 
             model.add(Dense(16, init='lecun_uniform'))
             model.add(Activation('linear'))

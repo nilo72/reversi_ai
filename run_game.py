@@ -8,11 +8,11 @@ from util import *
 
 def main():
 
-    board_size = 8
+    board_size = 4
     bot_time = 1  
     agent_args = {
-        'BlackAgent': monte_carlo_agent.MonteCarloAgent,
-        'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
+        'BlackAgent': q_learning_agent.QLearningAgent,
+        'WhiteAgent': random_agent.RandomAgent,
         'print': False,
         'white_time': bot_time,
         'black_time': bot_time,

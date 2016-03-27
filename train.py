@@ -5,8 +5,8 @@ from util import *
 
 def main():
     reversi = Reversi(4)
-    test = QLearningAgent(reversi, BLACK)
-    test.train(2000)
+    test = QLearningAgent(reversi, BLACK, remake_model=True)
+    test.train(5000)
 
 if __name__ == "__main__":
     main()

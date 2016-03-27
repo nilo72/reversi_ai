@@ -176,11 +176,6 @@ class QLearningAgent(Agent):
         offset += x
         return offset
 
-
-    def update(self, start_state, action, end_state, reward):
-        pass
-    # self.model.fit(...)
-
     @staticmethod
     def get_model():
         """Load the model from disk, or create a new one

@@ -1,6 +1,8 @@
 import hashlib
 from util import *
 
+WHITE_PIECE = 'O'
+BLACK_PIECE = 'X'
 
 class Board:
 
@@ -70,9 +72,9 @@ class Board:
             result += str(y) + ' '
             for x in range(self.size):
                 if self.board[y][x] == WHITE:
-                    result += 'O '
+                    result += WHITE_PIECE + ' '
                 elif self.board[y][x] == BLACK:
-                    result += 'X '
+                    result += BLACK_PIECE + ' '
                 elif self.board[y][x] == EMPTY:
                     result += '- '
                 else:
@@ -82,7 +84,6 @@ class Board:
         result += '  '
         for x in range(self.size):
             result += str(x) + ' '
-        result += '\n'
 
         return result
 

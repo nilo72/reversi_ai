@@ -14,26 +14,30 @@ class Reversi:
     def __init__(self, size, BlackAgent=RandomAgent, WhiteAgent=RandomAgent, **kwargs):
         self.size = size
         self.board = Board(self.size)
-        self.board.init_starting_position()
-
-        # game state is a 2-tuple of the board state, and which player's turn
-        # it is.
-        self.game_state = (self.board, BLACK)
-        self.legal_cache = CacheDict()
 
         black_time = kwargs.get('black_time', 5)
         white_time = kwargs.get('white_time', 5)
         self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)
         self.black_agent = BlackAgent(self, BLACK, time=black_time, **kwargs)
 
+        self.reset()
+
+
+    def reset(self):
+        """Reset the game to initial positions."""
+        self.board.init_starting_position()
+        self.game_state = (self.board, BLACK)
+        self.legal_cache = CacheDict()
+
         # storing legal moves allows us to avoid needlessly recalculating them
         self.legal_white_moves = []
         self.legal_black_moves = []
 
+
     def play_game(self):
         self.update_legal_moves(self.get_state())
         while not self.is_won():
-            self.print_board()
+            self.print_board(self.get_state())
             game_state = self.get_state()
             turn_color = game_state[1]
             self.update_legal_moves(game_state)
@@ -57,15 +61,17 @@ class Reversi:
             updated_game_state = self.apply_move(
                 game_state, picked[0], picked[1])
             self.game_state = updated_game_state
-        self.print_board()
+        self.print_board(self.get_state())
 
         # figure out who won
         black_count, white_count = self.board.get_stone_counts()
         winner = BLACK if black_count > white_count else WHITE
         return winner, white_count, black_count
 
-    def print_board(self):
-        print(str(self.get_board()))
+    @staticmethod
+    def print_board(state):
+        board = state[0]
+        print(board)
 
     def agent_pick_move(self, game_state, legal_moves):
         picked = None
@@ -144,25 +150,32 @@ class Reversi:
                     return True
         return False
 
-    def next_state(self, game_state, x, y):
+    def next_state(self, game_state, move):
         """Given a game_state and a position for a new piece, return a new game_state
         reflecting the change.  Does not modify the input game_state."""
         game_state_copy = copy.deepcopy(game_state)
-        result = self.apply_move(game_state_copy, x, y)
+        result = self.apply_move(game_state_copy, move)
         return result
 
     @staticmethod
-    def apply_move(game_state, x, y):
+    def apply_move(game_state, move):
         """Given a game_state (which includes info about whose turn it is) and an x,y
         position to place a piece, transform it into the game_state that follows this play."""
+
+        # if move is None, then the player simply passed their turn
+        if not move:
+            game_state = (game_state[0], opponent[game_state[1]])
+            return game_state
+
+        x, y = move
         color = game_state[1]
         board = game_state[0]
         board.place_stone_at(color, x, y)
 
         # now flip all the stones in every direction
-        opponent = BLACK
+        enemy_color = BLACK
         if color == BLACK:
-            opponent = WHITE
+            enemy_color = WHITE
 
         # now check in all directions, including diagonal
         to_flip = []
@@ -178,7 +191,7 @@ class Reversi:
                 xp = (distance * dx) + x
 
                 flip_candidates = []
-                while board.is_in_bounds(xp, yp) and board.board[yp][xp] == opponent:
+                while board.is_in_bounds(xp, yp) and board.board[yp][xp] == enemy_color:
                     flip_candidates.append((xp, yp))
                     distance += 1
                     yp = (distance * dy) + y

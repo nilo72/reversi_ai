@@ -41,16 +41,8 @@ class QLearningAgent(Agent):
 
         # ask neural network for best valued action
         q_vals = self.model.predict(self.numpify(game_state), batch_size = 1)
-        best_move = None
-        best_val = -float('inf')
-        for move in legal:
-            offset = self.to_offset(move[0], move[1], self.board_size)
-            val = q_vals[0][offset]
-            if val > best_val:
-                best_val = val
-                best_move = move
-
-        return move
+        best_move, best_val = self.best_move_val(legal, q_vals, self.kwargs.get('print', False))
+        return best_move
 
     def update_model(self, model, q_vals, state, action, new_state, reward):
         """
@@ -67,18 +59,11 @@ class QLearningAgent(Agent):
             q_vals = model.predict(self.numpify(state), batch_size = 1)
 
         legal = self.reversi.legal_moves(new_state)
+        next_qs = model.predict(self.numpify(new_state), batch_size = 1)
+        best_move, best_q = self.best_move_val(legal, next_qs)
 
-        best_q = None
-        if legal:
-            next_qs = model.predict(self.numpify(new_state), batch_size = 1)
-            for each in legal:
-                offset = self.to_offset(each[0], each[1], self.board_size)
-                val = next_qs[0][offset]
-                if best_q is None:
-                    best_q = val
-                elif val > best_q:
-                    best_q = val
-        else:
+        if not legal:
+            # if no possible moves, best_q is just 0
             best_q = 0
 
         move_offset = self.to_offset(action[0], action[1], self.board_size)
@@ -96,6 +81,27 @@ class QLearningAgent(Agent):
         size = len(board) * len(board[0])
         return array(board).reshape(1, size)
 
+    def best_move_val(self, moves, q_vals, print_vals=False):
+        """Given a list of moves and a q_val array,
+        return the move with the highest q_val and the q_val."""
+        if not moves:
+            # no moves available
+            return None, None
+
+        best_q = None
+        best_move = None
+
+        for move in moves:
+            offset = self.to_offset(move[0], move[1], self.board_size)
+            val = q_vals[0][offset]
+            if print_vals:
+                print('{}: {}'.format(move, val))
+            if best_q is None or val > best_q:
+                best_q = val
+                best_move = move
+
+        return best_move, best_q
+
 
 
     def train(self, epochs):
@@ -103,7 +109,7 @@ class QLearningAgent(Agent):
         self.board_size = self.reversi.board.get_size()
 
         self.alpha = 0.8
-        self.epsilon = 0.1 
+        self.epsilon = 0.1
 
         wins = []
         WIN_REWARD = 1
@@ -164,12 +170,7 @@ class QLearningAgent(Agent):
                         if legal:
                             move = random.choice(legal)
                     else:
-                        best_q = -float('inf')
-                        for each in legal:
-                            offset = self.to_offset(each[0], each[1], self.board_size)
-                            if q_vals[0][offset] > best_q:
-                                move = each
-                                best_q = q_vals[0][offset]
+                        move, val = self.best_move_val(legal, q_vals)
 
                     # make our move, saving old values for next network refit
                     if legal:
@@ -203,7 +204,7 @@ class QLearningAgent(Agent):
         if none is found on disk."""
         model = None
         try:
-            if self.kwargs['remake_model']:
+            if self.kwargs.get('remake_model', False):
                 raise FileNotFoundError
             model = model_from_json(open(MODEL_FILENAME).read())
             print('loading existing model file {}'.format(MODEL_FILENAME))
@@ -213,8 +214,8 @@ class QLearningAgent(Agent):
             model.add(Dense(256, init='lecun_uniform', input_shape=(16,)))
             model.add(Activation('relu'))
 
-            model.add(Dense(256, init='lecun_uniform'))
-            model.add(Activation('relu'))
+#            model.add(Dense(256, init='zero'))
+#            model.add(Activation('relu'))
 
             model.add(Dense(16, init='lecun_uniform'))
             model.add(Activation('linear'))

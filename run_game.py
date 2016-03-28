@@ -34,6 +34,12 @@ def main():
         agent_args['BlackAgent'] = monte_carlo_agent.MonteCarloAgent
         agent_args['WhiteAgent'] = human_agent.HumanAgent
 
+    for each in argv:
+        if each.startswith('weights_file='):
+            weights_file = each.split('weights_file=')[1]
+            print('sending weights_file: {}'.format(weights_file))
+            agent_args['weights_file'] = weights_file
+
     summary = []
     white_wins = 0
     black_wins = 0

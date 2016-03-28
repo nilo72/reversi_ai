@@ -12,8 +12,13 @@ from agents.random_agent import RandomAgent
 from util import *
 from numpy import array
 
-MODEL_FILENAME = 'q_model_b.json'
-WEIGHTS_FILENAME = 'q_weights_b.h5'
+MODEL_FILENAME = 'q_model.json'
+WEIGHTS_FILENAME = 'q_weights'
+
+# after this many epochs, save to a new weight file
+# so that if overfitting occurs and the model starts to get
+# worse, we have saved versions of earlier weights.
+WEIGHT_GEN_LENGTH = 2000
 
 class QLearningAgent(Agent):
 
@@ -27,9 +32,11 @@ class QLearningAgent(Agent):
         self.model = self.get_model()
         self.model.compile(loss='mse', optimizer=RMSprop())
 
-        if os.path.exists(WEIGHTS_FILENAME):
-            print('loading existing weights file {}'.format(WEIGHTS_FILENAME))
-            self.model.load_weights(WEIGHTS_FILENAME)
+        weights_file = WEIGHTS_FILENAME + self.kwargs.get('weights_file', '')
+        print('looking for weights_file {}'.format(weights_file))
+        if os.path.exists(weights_file):
+            print('loading existing weights file {}'.format(weights_file))
+            self.model.load_weights(weights_file)
 
     def get_action(self, game_state):
         return self.policy(game_state)
@@ -109,7 +116,7 @@ class QLearningAgent(Agent):
         self.board_size = self.reversi.board.get_size()
 
         self.alpha = 0.8
-        self.epsilon = 0.00
+        self.epsilon = 0.1
 
         wins = []
         WIN_REWARD = 1
@@ -181,6 +188,10 @@ class QLearningAgent(Agent):
                     state = self.reversi.next_state(state, move)
                     assert(state[1] == WHITE)
 
+            if i % WEIGHT_GEN_LENGTH == 0:
+                print('saving model at epoch {}'.format(i))
+                model.save_weights(WEIGHTS_FILENAME + '_' + str(i / WEIGHT_GEN_LENGTH))
+
         print('training complete.')
         print('summary:')
         black_wins = len([win for win in wins if win == BLACK])
@@ -213,9 +224,10 @@ class QLearningAgent(Agent):
             model = Sequential()
             model.add(Dense(256, init='lecun_uniform', input_shape=(16,)))
             model.add(Activation('relu'))
+            # model.add(Dropout(0.2))
 
-#            model.add(Dense(256, init='zero'))
-#            model.add(Activation('relu'))
+            # model.add(Dense(256, init='zero'))
+            # model.add(Activation('relu'))
 
             model.add(Dense(16, init='lecun_uniform'))
             model.add(Activation('linear'))

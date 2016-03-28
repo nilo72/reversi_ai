@@ -103,13 +103,13 @@ class QLearningAgent(Agent):
         return best_move, best_q
 
 
-
     def train(self, epochs):
+        # new one from non-working version
         model = self.model
         self.board_size = self.reversi.board.get_size()
 
         self.alpha = 0.8
-        self.epsilon = 0.1
+        self.epsilon = 0.00
 
         wins = []
         WIN_REWARD = 1

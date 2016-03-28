@@ -32,7 +32,7 @@ class QLearningAgent(Agent):
         self.model = self.get_model()
         self.model.compile(loss='mse', optimizer=RMSprop())
 
-        weights_file = WEIGHTS_FILENAME + self.kwargs.get('weights_file', '')
+        weights_file = self.kwargs.get('weights_file', WEIGHTS_FILENAME)
         print('looking for weights_file {}'.format(weights_file))
         if os.path.exists(weights_file):
             print('loading existing weights file {}'.format(weights_file))

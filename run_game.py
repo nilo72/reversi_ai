@@ -9,7 +9,7 @@ from util import *
 def main():
 
     board_size = 4
-    bot_time = 1  
+    bot_time = 0.5  
     agent_args = {
         'BlackAgent': q_learning_agent.QLearningAgent,
         'WhiteAgent': random_agent.RandomAgent,

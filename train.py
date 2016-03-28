@@ -10,7 +10,7 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
             amount = int(sys.argv[1])
 
-    reversi = Reversi(4)
+    reversi = Reversi(8)
     test = QLearningAgent(reversi, BLACK, remake_model=True)
     test.train(amount)
 

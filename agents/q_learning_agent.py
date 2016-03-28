@@ -18,7 +18,7 @@ WEIGHTS_FILENAME = 'q_weights'
 # after this many epochs, save to a new weight file
 # so that if overfitting occurs and the model starts to get
 # worse, we have saved versions of earlier weights.
-WEIGHT_GEN_LENGTH = 2000
+WEIGHT_GEN_LENGTH = 5000
 
 class QLearningAgent(Agent):
 
@@ -37,6 +37,8 @@ class QLearningAgent(Agent):
         if os.path.exists(weights_file):
             print('loading existing weights file {}'.format(weights_file))
             self.model.load_weights(weights_file)
+        else:
+            print('weights file {} not found.'.format(weights_file))
 
     def get_action(self, game_state):
         return self.policy(game_state)
@@ -215,21 +217,23 @@ class QLearningAgent(Agent):
         if none is found on disk."""
         model = None
         try:
-            if self.kwargs.get('remake_model', False):
+            # if self.kwargs.get('remake_model', False):
+            if True:
                 raise FileNotFoundError
             model = model_from_json(open(MODEL_FILENAME).read())
             print('loading existing model file {}'.format(MODEL_FILENAME))
         except FileNotFoundError:
             print('generating new model')
+            size = self.reversi.board.get_size() ** 2
             model = Sequential()
-            model.add(Dense(256, init='lecun_uniform', input_shape=(16,)))
+            model.add(Dense(256, init='lecun_uniform', input_shape=(size,)))
             model.add(Activation('relu'))
             # model.add(Dropout(0.2))
 
             # model.add(Dense(256, init='zero'))
             # model.add(Activation('relu'))
 
-            model.add(Dense(16, init='lecun_uniform'))
+            model.add(Dense(size, init='lecun_uniform'))
             model.add(Activation('linear'))
 
         return model

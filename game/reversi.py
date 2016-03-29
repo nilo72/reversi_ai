@@ -11,16 +11,16 @@ from cache_dict import CacheDict
 class Reversi:
     """This class enforces the rules of the game of Reversi."""
 
-    def __init__(self, size, BlackAgent=RandomAgent, WhiteAgent=RandomAgent, **kwargs):
+    def __init__(self, size, **kwargs):
         self.size = size
         self.board = Board(self.size)
 
-        black_time = kwargs.get('black_time', 5)
-        white_time = kwargs.get('white_time', 5)
-        self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)
-        self.black_agent = BlackAgent(self, BLACK, time=black_time, **kwargs)
-
-        set_output(kwargs.get('silent', False))
+        black_time = kwargs.get('black_time')
+        white_time = kwargs.get('white_time')
+        WhiteAgent = kwargs.get('WhiteAgent')
+        BlackAgent = kwargs.get('BlackAgent')
+        self.white_agent = WhiteAgent(self, WHITE, **kwargs)
+        self.black_agent = BlackAgent(self, BLACK, **kwargs)
 
         self.reset()
 

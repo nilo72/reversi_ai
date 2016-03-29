@@ -32,13 +32,17 @@ class QLearningAgent(Agent):
         self.model = self.get_model()
         self.model.compile(loss='mse', optimizer=RMSprop())
 
-        weights_file = self.kwargs.get('weights_file', WEIGHTS_FILENAME)
+        weights_file = self.kwargs.get('weights_file', False)
         info('looking for weights_file {}'.format(weights_file))
-        if os.path.exists(weights_file):
-            info('loading existing weights file {}'.format(weights_file))
-            self.model.load_weights(weights_file)
+        if weights_file:
+            if os.path.exists(weights_file):
+                info('loading existing weights file {}'.format(weights_file))
+                self.model.load_weights(weights_file)
+            else:
+                print("couldn't find weights file {}. quitting.".format(weights_file))
+                quit()
         else:
-            info('weights file {} not found.'.format(weights_file))
+            info('Not loading a weights file because it was not found or chosen.')
 
     def get_action(self, game_state):
         return self.policy(game_state)
@@ -216,8 +220,7 @@ class QLearningAgent(Agent):
         if none is found on disk."""
         model = None
         try:
-            # if self.kwargs.get('remake_model', False):
-            if True:
+            if self.kwargs.get('remake_model', False):
                 raise FileNotFoundError
             model = model_from_json(open(MODEL_FILENAME).read())
             info('loading existing model file {}'.format(MODEL_FILENAME))

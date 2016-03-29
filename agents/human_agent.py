@@ -10,6 +10,8 @@ class HumanAgent(Agent):
 
     def get_action(self, game_state):
         legal = self.reversi.legal_moves(game_state)
+        if not legal:
+            return None
         choice = None
         while True:
             raw_choice = input('Enter a move x,y: ')

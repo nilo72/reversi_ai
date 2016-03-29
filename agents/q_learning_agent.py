@@ -18,7 +18,7 @@ WEIGHTS_FILENAME = 'q_weights'
 # after this many epochs, save to a new weight file
 # so that if overfitting occurs and the model starts to get
 # worse, we have saved versions of earlier weights.
-WEIGHT_GEN_LENGTH = 5000
+WEIGHT_GEN_LENGTH = 10000 
 
 class QLearningAgent(Agent):
 
@@ -33,12 +33,12 @@ class QLearningAgent(Agent):
         self.model.compile(loss='mse', optimizer=RMSprop())
 
         weights_file = self.kwargs.get('weights_file', WEIGHTS_FILENAME)
-        print('looking for weights_file {}'.format(weights_file))
+        info('looking for weights_file {}'.format(weights_file))
         if os.path.exists(weights_file):
-            print('loading existing weights file {}'.format(weights_file))
+            info('loading existing weights file {}'.format(weights_file))
             self.model.load_weights(weights_file)
         else:
-            print('weights file {} not found.'.format(weights_file))
+            info('weights file {} not found.'.format(weights_file))
 
     def get_action(self, game_state):
         return self.policy(game_state)
@@ -50,7 +50,7 @@ class QLearningAgent(Agent):
 
         # ask neural network for best valued action
         q_vals = self.model.predict(self.numpify(game_state), batch_size = 1)
-        best_move, best_val = self.best_move_val(legal, q_vals, self.kwargs.get('print', False))
+        best_move, best_val = self.best_move_val(legal, q_vals)
         return best_move
 
     def update_model(self, model, q_vals, state, action, new_state, reward):
@@ -90,7 +90,7 @@ class QLearningAgent(Agent):
         size = len(board) * len(board[0])
         return array(board).reshape(1, size)
 
-    def best_move_val(self, moves, q_vals, print_vals=False):
+    def best_move_val(self, moves, q_vals):
         """Given a list of moves and a q_val array,
         return the move with the highest q_val and the q_val."""
         if not moves:
@@ -103,8 +103,7 @@ class QLearningAgent(Agent):
         for move in moves:
             offset = self.to_offset(move[0], move[1], self.board_size)
             val = q_vals[0][offset]
-            if print_vals:
-                print('{}: {}'.format(move, val))
+            info('{}: {}'.format(move, val))
             if best_q is None or val > best_q:
                 best_q = val
                 best_move = move
@@ -191,15 +190,15 @@ class QLearningAgent(Agent):
                     assert(state[1] == WHITE)
 
             if i % WEIGHT_GEN_LENGTH == 0:
-                print('saving model at epoch {}'.format(i))
+                info('saving model at epoch {}'.format(i))
                 model.save_weights(WEIGHTS_FILENAME + '_' + str(i / WEIGHT_GEN_LENGTH))
 
-        print('training complete.')
-        print('summary:')
+        info('training complete.')
+        info('summary:')
         black_wins = len([win for win in wins if win == BLACK])
         white_wins = len([win for win in wins if win == WHITE])
-        print(' black: {} ({})'.format(black_wins, black_wins / (black_wins + white_wins)))
-        print(' white: {} ({})'.format(white_wins, white_wins / (black_wins + white_wins)))
+        info(' black: {} ({})'.format(black_wins, black_wins / (black_wins + white_wins)))
+        info(' white: {} ({})'.format(white_wins, white_wins / (black_wins + white_wins)))
         model.save_weights(WEIGHTS_FILENAME, overwrite=True)
         self.save_model(model)
 
@@ -221,9 +220,9 @@ class QLearningAgent(Agent):
             if True:
                 raise FileNotFoundError
             model = model_from_json(open(MODEL_FILENAME).read())
-            print('loading existing model file {}'.format(MODEL_FILENAME))
+            info('loading existing model file {}'.format(MODEL_FILENAME))
         except FileNotFoundError:
-            print('generating new model')
+            info('generating new model')
             size = self.reversi.board.get_size() ** 2
             model = Sequential()
             model.add(Dense(256, init='lecun_uniform', input_shape=(size,)))
@@ -244,5 +243,5 @@ class QLearningAgent(Agent):
         as_json = model.to_json()
         with open(MODEL_FILENAME, 'w') as f:
             f.write(as_json)
-            print('model saved to {}'.format(MODEL_FILENAME))
+            info('model saved to {}'.format(MODEL_FILENAME))
 

@@ -6,17 +6,16 @@ from agents import random_agent, monte_carlo_agent, human_agent, q_learning_agen
 from util import *
 
 
-def main():
+def main(**kwargs):
 
     board_size = 8
     bot_time = 1  
     agent_args = {
-        'BlackAgent': monte_carlo_agent.MonteCarloAgent,
-        'WhiteAgent': monte_carlo_agent.MonteCarloAgent,
+        'BlackAgent': q_learning_agent.QLearningAgent,
+        'WhiteAgent': random_agent.RandomAgent,
         'print': False,
         'white_time': bot_time,
         'black_time': bot_time,
-        'episodes': 200
     }
 
     amount = 1
@@ -39,6 +38,13 @@ def main():
             weights_file = each.split('weights_file=')[1]
             print('sending weights_file: {}'.format(weights_file))
             agent_args['weights_file'] = weights_file
+        elif each == 'silent':
+            kwargs['silent'] = True
+
+    set_output(kwargs.get('silent', False))
+
+    agent_args.update(kwargs)
+    amount = kwargs.get('amount', amount)
 
     summary = []
     white_wins = 0
@@ -46,24 +52,26 @@ def main():
     reversi = Reversi(board_size, **agent_args)
     start = time.time()
     for t in range(1, amount + 1):
-        print('starting game {} of {}'.format(t, amount))
+        info('starting game {} of {}'.format(t, amount))
         winner, white_score, black_score = reversi.play_game()
         if winner == WHITE:
             white_wins += 1
         elif winner == BLACK:
             black_wins += 1
-        print('game {} complete.'.format(t))
+        info('game {} complete.'.format(t))
         message = '{} wins! {}-{}'.format(
             color_name[winner], white_score, black_score)
-        print(message)
+        info(message)
         summary.append(message)
         reversi.reset()
 
     print('time: {} minutes'.format((time.time() - start) / 60))
     print('summary: {} games played'.format(len(summary)))
     for each in summary:
-        print(each)
+        info(each)
     print('Black won {}%'.format(black_wins / (black_wins + white_wins) * 100))
+
+    return (black_wins / (black_wins + white_wins)) * 100
 
 if __name__ == '__main__':
     main()

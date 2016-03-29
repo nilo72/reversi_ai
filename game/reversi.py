@@ -20,6 +20,8 @@ class Reversi:
         self.white_agent = WhiteAgent(self, WHITE, time=white_time, **kwargs)
         self.black_agent = BlackAgent(self, BLACK, time=black_time, **kwargs)
 
+        set_output(kwargs.get('silent', False))
+
         self.reset()
 
 
@@ -33,17 +35,17 @@ class Reversi:
     def play_game(self):
         state = self.get_state()
         self.print_board(state)
-        print()
+        info_newline()
         while self.winner(state) is False:
             color = state[1]
             picked = self.agent_pick_move(state)
             state = self.apply_move(state, picked)
             self.print_board(state)
             if not picked:
-                print('{} had no moves and passed their turn.'.format(color_name[color]))
+                info('{} had no moves and passed their turn.'.format(color_name[color]))
             else:
-                print('{} plays at {}'.format(color_name[color], str(picked)))
-            print()
+                info('{} plays at {}'.format(color_name[color], str(picked)))
+            info_newline()
         self.print_board(state)
 
         # figure out who won
@@ -54,7 +56,7 @@ class Reversi:
     @staticmethod
     def print_board(state):
         board = state[0]
-        print(board)
+        info(board)
 
     def agent_pick_move(self, state):
         color = state[1]
@@ -70,7 +72,7 @@ class Reversi:
         if picked is None:
             return None
         elif picked not in legal_moves:
-            print(str(picked) + ' is not a legal move! Game over.')
+            info(str(picked) + ' is not a legal move! Game over.')
             quit()
 
         return picked

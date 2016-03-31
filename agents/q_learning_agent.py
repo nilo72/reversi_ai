@@ -125,10 +125,10 @@ class QLearningAgent(Agent):
 
         wins = []
         WIN_REWARD = 1
-        LOSE_REWARD = 0
+        LOSE_REWARD = -1
 
         for i in range(1, epochs + 1):
-            print('starting epoch {}'.format(i))
+            print('starting epoch {} ({:5.2f}%)'.format(i, (i / epochs) * 100))
             self.reversi.reset()
             state = deepcopy(self.reversi.get_state())
 
@@ -219,16 +219,20 @@ class QLearningAgent(Agent):
         """Load the model from disk, or create a new one
         if none is found on disk."""
         model = None
-        try:
-            if self.kwargs.get('remake_model', False):
-                raise FileNotFoundError
-            model = model_from_json(open(MODEL_FILENAME).read())
+        model_file = self.kwargs.get('model_file', False)
+        if model_file is not False:
+            try:
+                print('trying to open file {}'.format(model_file))
+                model = model_from_json(open(model_file).read())
+            except FileNotFoundError:
+                print("couldn't find model file {}. quitting.".format(self.kwargs.get('model_file')))
+                quit()
             info('loading existing model file {}'.format(MODEL_FILENAME))
-        except FileNotFoundError:
+        else:
             info('generating new model')
             size = self.reversi.board.get_size() ** 2
             model = Sequential()
-            model.add(Dense(256, init='lecun_uniform', input_shape=(size,)))
+            model.add(Dense(42, init='lecun_uniform', input_shape=(size,)))
             model.add(Activation('relu'))
             # model.add(Dropout(0.2))
 

@@ -7,7 +7,7 @@ color_name = {BLACK: 'Black', WHITE: 'White'}
 opponent = {BLACK: WHITE, WHITE: BLACK}
 
 silent = False
-def set_output(val):
+def make_silent(val):
     assert val is True or val is False
     global silent
     silent = val

@@ -10,6 +10,19 @@ def prop_parse(props):
             continue
         property = split[0]
         value = split[1]
+
+        if value == 'True':
+            value = True
+        elif value == 'False':
+            value = False
+        else:
+            try:
+                value = float(value)
+                if value.is_integer():
+                    value = int(value)
+            except ValueError:
+                pass
+
         result[property] = value
 
     return result

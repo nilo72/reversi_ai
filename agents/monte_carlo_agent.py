@@ -14,8 +14,7 @@ class MonteCarloAgent(Agent):
     def __init__(self, reversi, color, **kwargs):
         self.color = color
         self.reversi = reversi
-        self.print_info = kwargs.get('print', False)
-        self.sim_time = kwargs.get('time', 5)
+        self.sim_time = kwargs.get('sim_time', 5)
 
         # map states to nodes for quick lookup
         self.state_node = {}
@@ -61,8 +60,8 @@ class MonteCarloAgent(Agent):
         for child in root.children:
             wins, plays = child.get_wins_plays()
             position = child.move
-            self.info('{}: ({}/{})'.format(position, wins, plays))
-        self.info('{} simulations performed.'.format(sim_count))
+            info('{}: ({}/{})'.format(position, wins, plays))
+        info('{} simulations performed.'.format(sim_count))
         return self.best_action(root)
 
     @staticmethod
@@ -184,11 +183,6 @@ class MonteCarloAgent(Agent):
 
             picked = random.choice(moves)
             state = self.reversi.apply_move(state, picked)
-
-    def info(self, s):
-        if self.print_info:
-            print(s)
-
 
 class Node:
 

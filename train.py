@@ -6,11 +6,11 @@ from util import *
 import sys
 
 def main():
-    amount = 20000
+    amount = 5000
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
             amount = int(sys.argv[1])
 
-    reversi = Reversi(8)
+    reversi = Reversi(size=8, silent=True)
     test = QLearningAgent(reversi, BLACK, remake_model=True)
     test.train(amount)
 

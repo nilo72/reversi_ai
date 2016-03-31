@@ -12,13 +12,13 @@ from agents.random_agent import RandomAgent
 from util import *
 from numpy import array
 
-MODEL_FILENAME = 'q_model.json'
-WEIGHTS_FILENAME = 'q_weights'
+MODEL_FILENAME = '8x8_fivemil_network/q_model.json'
+WEIGHTS_FILENAME = '8x8_fivemil_network/q_weights'
 
 # after this many epochs, save to a new weight file
 # so that if overfitting occurs and the model starts to get
 # worse, we have saved versions of earlier weights.
-WEIGHT_GEN_LENGTH = 10000 
+WEIGHT_GEN_LENGTH = 100000
 
 class QLearningAgent(Agent):
 
@@ -232,7 +232,7 @@ class QLearningAgent(Agent):
             info('generating new model')
             size = self.reversi.board.get_size() ** 2
             model = Sequential()
-            model.add(Dense(42, init='lecun_uniform', input_shape=(size,)))
+            model.add(Dense(64, init='lecun_uniform', input_shape=(size,)))
             model.add(Activation('relu'))
             # model.add(Dropout(0.2))
 

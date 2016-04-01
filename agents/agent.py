@@ -9,3 +9,9 @@ class Agent:
 
     def get_action(self, game_state, legal_moves):
         raise NotImplementedError
+
+    def observe_win(self, winner):
+        raise NotImplementedError
+    
+    def reset(self):
+        raise NotImplementedError

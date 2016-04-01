@@ -33,6 +33,9 @@ class Reversi:
         self.game_state = (self.board, BLACK)
         self.legal_cache = CacheDict()
 
+        self.white_agent.reset()
+        self.black_agent.reset()
+
 
     def play_game(self):
         state = self.get_state()
@@ -50,9 +53,13 @@ class Reversi:
             info_newline()
         self.print_board(state)
 
+        self.white_agent.observe_win(state)
+        self.black_agent.observe_win(state)
+
         # figure out who won
         black_count, white_count = state[0].get_stone_counts()
         winner = BLACK if black_count > white_count else WHITE
+        info('{} wins.'.format(color_name[winner]))
         return winner, white_count, black_count
 
     @staticmethod

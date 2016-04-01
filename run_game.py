@@ -47,7 +47,6 @@ def main(**kwargs):
     print('About to run {} games, black as {}, white as {}.'.format(
         amount, input_args['BlackAgent'].__name__, input_args['WhiteAgent'].__name__)
         )
-    time.sleep(3)
 
 
     summary = []

@@ -12,13 +12,20 @@ from agents.random_agent import RandomAgent
 from util import *
 from numpy import array
 
-MODEL_FILENAME = '8x8_fivemil_network/q_model.json'
-WEIGHTS_FILENAME = '8x8_fivemil_network/q_weights'
+# change these to change where models/weights are stored/loaded
+MODEL_FILENAME = '8x8_duel_network/q_model.json'
+WEIGHTS_FILENAME = '8x8_duel_network/q_weights'
 
 # after this many epochs, save to a new weight file
 # so that if overfitting occurs and the model starts to get
 # worse, we have saved versions of earlier weights.
-WEIGHT_GEN_LENGTH = 100000
+WEIGHT_GEN_LENGTH = 10000
+
+# Amount of nodes in the hidden layer
+HIDDEN_SIZE = 44
+
+WIN_REWARD = 1
+LOSE_REWARD = -1
 
 class QLearningAgent(Agent):
 
@@ -28,27 +35,125 @@ class QLearningAgent(Agent):
         self.board_size = self.reversi.board.get_size()
         self.kwargs = kwargs
 
+        self.learning_mode = self.kwargs.get('learning_mode', False)
+
         # initialize the model
-        self.model = self.get_model()
+        self.model = self.get_model(self.kwargs.get('model_file', False), self.board_size)
         self.model.compile(loss='mse', optimizer=RMSprop())
 
         weights_file = self.kwargs.get('weights_file', False)
-        info('looking for weights_file {}'.format(weights_file))
-        if weights_file:
-            if os.path.exists(weights_file):
-                info('loading existing weights file {}'.format(weights_file))
-                self.model.load_weights(weights_file)
-            else:
-                print("couldn't find weights file {}. quitting.".format(weights_file))
-                quit()
+        if weights_file is not False:
+            weights_file += '_' + color_name[self.color]
+            self.load_weights(weights_file, self.model)
         else:
-            info('Not loading a weights file because it was not found or chosen.')
+            info('no weights file given; using default weights.')
+
+        if self.learning_mode:
+            info('learning mode enabled.')
+            self.prev_state = None
+            self.prev_q = None
+            self.prev_move = None
+
+            self.alpha = 0.8
+        else:
+            info('learning mode NOT enabled.')
+
+
+
+
+    @staticmethod
+    def load_weights(weights_file, model):
+        """Given the name of a weights file and the model,
+            populate the model with the weights."""
+        info('looking for weights_file {}'.format(weights_file))
+        if os.path.exists(weights_file):
+            model.load_weights(weights_file)
+            info('loaded existing weights file {}'.format(weights_file))
+        else:
+            print("couldn't find weights file {}. quitting.".format(weights_file))
+            quit()
+
+    def observe_win(self, state, winner):
+        """Called by Reversi when the game is over.
+           The state is the final board state of the game."""
+
+        # call get_action to train our agent on the winning move
+        self.get_action(state)
+
 
     def get_action(self, game_state):
-        return self.policy(game_state)
-
-    def policy(self, game_state):
         legal = self.reversi.legal_moves(game_state)
+
+        if self.learning_mode:
+            # learning mode enabled, so reinforce
+
+            if not self.prev_state:
+                # on the first move, just set this up for future
+                self.prev_state = state
+
+                q_vals = self.model.predict(self.numpify(game_state), batch_size = 1)[0]
+                self.prev_qs = q_vals
+
+                move, _ = self.best_move_val(legal, q_vals)
+                self.prev_move = move
+                return move
+            else:
+                # reinforce the previous move with our new info
+                reward = 0
+                winner = self.reversi.winner(game_state)
+                if winner == self.color:
+                    reward = WIN_REWARD
+                elif winner == opponent[self.color]:
+                    reward = LOSE_REWARD
+
+                # if there are no moves but the game isn't over yet, don't reinforce yet
+                if not legal and winner is False:
+                    return None # pass turn
+
+                best_move, new_qs = self.update_model(self.model, self.prev_state, \
+                        self.prev_move, self.prev_qs, game_state, reward, winner)
+                self.prev_move = best_move
+                self.prev_qs = new_qs
+                self.prev_state = game_state
+
+                return best_move
+        else:
+            # just follow the policy
+            if not legal:
+                return None
+            else:
+                return self.policy(game_state, legal)
+
+    @staticmethod
+    def update_model(self, model, prev_state, prev_action, q_vals, new_moves, reward, winner):
+        """Given the necessary parameters, reinforce the model. For convenience, returns the
+            best move its q_val that it found while reinforcing. Do NOT call this method
+            in a game state where you have no moves, UNLESS it is a winning game state."""
+        # Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r + maxQ(s', a'))
+        move_offset = self.to_offset(prev_action)
+        max_q = None
+        next_q_vals = None
+        best_move = None
+        if winner is False:
+            next_q_vals = model.predict(self.numpify(new_state), batch_size = 1)
+            best_move, max_q = self.best_move_val(new_moves, next_q_vals)
+        else:
+            # we have a winner! Don't need max_q, it's all in the reward
+            max_q = 0
+
+        q_vals[move_offset] = (1 - self.alpha) * q_vals[move_offset] + \
+                self.alpha * (reward + max_q)
+        model.fit(self.numpify(prev_state), q_vals, batch_size = 1, nb_epoch=1)
+
+        if winner is False:
+            # for convenience, return best move and q_vals
+            return best_move, next_q_vals
+        else:
+            # the game is won, no values to return
+            return None, None
+
+
+    def policy(self, game_state, legal):
         if not legal:
             return None
 
@@ -57,33 +162,6 @@ class QLearningAgent(Agent):
         best_move, best_val = self.best_move_val(legal, q_vals)
         return best_move
 
-    def update_model(self, model, q_vals, state, action, new_state, reward):
-        """
-        model: the model
-        q_vals: the prediction given initially for all actions in state
-        state: the earlier state
-        action: the action taken from state
-        new_state: the resulting state from taking action in state
-        reward: the reward for transitioning to new_state
-        """
-        # Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r + Q(s', a'))
-        # find the max next Q of the new state (max Q(s', a'))
-        if q_vals is None:
-            q_vals = model.predict(self.numpify(state), batch_size = 1)
-
-        legal = self.reversi.legal_moves(new_state)
-        next_qs = model.predict(self.numpify(new_state), batch_size = 1)
-        best_move, best_q = self.best_move_val(legal, next_qs)
-
-        if not legal:
-            # if no possible moves, best_q is just 0
-            best_q = 0
-
-        move_offset = self.to_offset(action[0], action[1], self.board_size)
-        q_vals[0][move_offset] = (1 - self.alpha) * q_vals[0][move_offset] + \
-                self.alpha * (reward + best_q)
-
-        model.fit(self.numpify(state), q_vals, batch_size=1, nb_epoch=1,verbose=0)
 
     @staticmethod
     def numpify(state):
@@ -101,110 +179,19 @@ class QLearningAgent(Agent):
             # no moves available
             return None, None
 
-        best_q = None
-        best_move = None
+            best_q = None
+            best_move = None
 
-        for move in moves:
-            offset = self.to_offset(move[0], move[1], self.board_size)
-            val = q_vals[0][offset]
-            info('{}: {}'.format(move, val))
-            if best_q is None or val > best_q:
-                best_q = val
-                best_move = move
+            for move in moves:
+                offset = QLearningAgent.to_offset(move[0], move[1], self.board_size)
+                val = q_vals[0][offset]
+                info('{}: {}'.format(move, val))
+                if best_q is None or val > best_q:
+                    best_q = val
+                    best_move = move
 
-        return best_move, best_q
+            return best_move, best_q
 
-
-    def train(self, epochs):
-        # new one from non-working version
-        model = self.model
-        self.board_size = self.reversi.board.get_size()
-
-        self.alpha = 0.8
-        self.epsilon = 0.1
-
-        wins = []
-        WIN_REWARD = 1
-        LOSE_REWARD = -1
-
-        for i in range(1, epochs + 1):
-            print('starting epoch {} ({:5.2f}%)'.format(i, (i / epochs) * 100))
-            self.reversi.reset()
-            state = deepcopy(self.reversi.get_state())
-
-            prev_action = None
-            old_qs = None
-            prev_state = None
-
-            # in this epoch, play a game and refit as we go
-            white_agent = RandomAgent(self.reversi, WHITE)
-
-            while True:
-                # white and black take turns until game is over
-                # we break out when game is over
-                if state[1] == WHITE:
-                    # white's turn
-                    legal = self.reversi.legal_moves(state)
-                    move = None
-                    if legal:
-                        move = random.choice(legal)
-                    state = self.reversi.next_state(state, move)
-                    assert(state[1] == BLACK)
-
-                elif state[1] == BLACK:
-                    # it's black's turn
-
-                    # first let's see where our last move landed us after white's play
-                    if prev_state is not None:
-                        # train model on where we ended up
-                        reward = 0
-                        winner = self.reversi.winner(state)
-                        if winner == BLACK:
-                            reward = WIN_REWARD
-                        elif winner == WHITE:
-                            reward = LOSE_REWARD
-                        elif winner is not False:
-                            raise ValueError
-
-                        self.update_model(model, old_qs, prev_state, prev_action, state, reward)
-
-                        if winner is not False:
-                            wins.append(winner)
-                            break # the game is over, move on to next epoch
-
-                    # now make our move based on highest legal q_val
-                    q_vals = model.predict(self.numpify(state), batch_size = 1)
-                    legal = self.reversi.legal_moves(state)
-
-                    move = None
-                    if random.random() < self.epsilon:
-                        # epsilon greedy, pick random move
-                        if legal:
-                            move = random.choice(legal)
-                    else:
-                        move, val = self.best_move_val(legal, q_vals)
-
-                    # make our move, saving old values for next network refit
-                    if legal:
-                        # if we had a move and took it
-                        prev_state = state
-                        old_qs = q_vals
-                        prev_action = move
-                    state = self.reversi.next_state(state, move)
-                    assert(state[1] == WHITE)
-
-            if i % WEIGHT_GEN_LENGTH == 0:
-                info('saving model at epoch {}'.format(i))
-                model.save_weights(WEIGHTS_FILENAME + '_' + str(i / WEIGHT_GEN_LENGTH))
-
-        info('training complete.')
-        info('summary:')
-        black_wins = len([win for win in wins if win == BLACK])
-        white_wins = len([win for win in wins if win == WHITE])
-        info(' black: {} ({})'.format(black_wins, black_wins / (black_wins + white_wins)))
-        info(' white: {} ({})'.format(white_wins, white_wins / (black_wins + white_wins)))
-        model.save_weights(WEIGHTS_FILENAME, overwrite=True)
-        self.save_model(model)
 
     @staticmethod
     def to_offset(x, y, width):
@@ -215,32 +202,31 @@ class QLearningAgent(Agent):
         offset += x
         return offset
 
-    def get_model(self):
+    @staticmethod
+    def get_model(model_file, board_size):
         """Load the model from disk, or create a new one
         if none is found on disk."""
-        model = None
-        model_file = self.kwargs.get('model_file', False)
         if model_file is not False:
             try:
-                print('trying to open file {}'.format(model_file))
+                print('opening file {}'.format(model_file))
                 model = model_from_json(open(model_file).read())
             except FileNotFoundError:
-                print("couldn't find model file {}. quitting.".format(self.kwargs.get('model_file')))
+                print("couldn't find model file {}. quitting.".format(model_file))
                 quit()
-            info('loading existing model file {}'.format(MODEL_FILENAME))
+            print('loading existing model file {}'.format(MODEL_FILENAME))
         else:
             info('generating new model')
-            size = self.reversi.board.get_size() ** 2
+            size = board_size ** 2
             model = Sequential()
-            model.add(Dense(64, init='lecun_uniform', input_shape=(size,)))
-            model.add(Activation('relu'))
+            model.add(Dense(HIDDEN_SIZE, init='zero', input_shape=(size,)))
+            model.add(Activation('tanh'))
             # model.add(Dropout(0.2))
 
             # model.add(Dense(256, init='zero'))
             # model.add(Activation('relu'))
 
-            model.add(Dense(size, init='lecun_uniform'))
-            model.add(Activation('linear'))
+            model.add(Dense(size, init='zero'))
+            model.add(Activation('tanh')) # tanh or linear
 
         return model
 

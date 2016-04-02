@@ -19,6 +19,12 @@ class MonteCarloAgent(Agent):
         # map states to nodes for quick lookup
         self.state_node = {}
 
+    def reset(self):
+        pass
+
+    def observe_win(self, winner):
+        pass
+
     def get_action(self, game_state):
         """Interface from class Agent.  Given a game state
         and a set of legal moves, pick a legal move and return it.

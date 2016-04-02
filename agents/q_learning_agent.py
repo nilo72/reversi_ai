@@ -6,6 +6,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.models import model_from_json
 from keras.optimizers import RMSprop
+from keras.optimizers import SGD
 
 from agents.agent import Agent
 from agents.random_agent import RandomAgent
@@ -19,6 +20,10 @@ WEIGHTS_FILENAME = '8x8_duel_network/q_weights'
 
 # Amount of nodes in the hidden layer
 HIDDEN_SIZE = 44
+# weight for neural network refitting -- NOT the alpha value
+LEARNING_RATE = 0.1
+# according to the research paper, momentum of 0 is effective
+MOMENTUM = 0.0
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -131,6 +136,8 @@ class QLearningAgent(Agent):
                 if self.epsilon > random.random():
                     if legal:
                         best_move = random.choice(legal)
+                    else:
+                        best_move = None
 
                 self.prev_move = best_move
                 self.prev_qs = new_qs
@@ -252,8 +259,9 @@ class QLearningAgent(Agent):
             model.add(Dense(size, init='zero'))
             model.add(Activation('tanh')) # tanh or linear
 
-        rms_opt = RMSprop(lr=0.1, momentum=0.0)
-        model.compile(loss='mse', optimizer=rms_opt)
+        sgd_opt = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
+        # rms_opt = RMSprop() # don't change RMSprop values, they should be defaults
+        model.compile(loss='mse', optimizer=sgd_opt)
         return model
 
     @staticmethod

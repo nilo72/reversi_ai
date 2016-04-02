@@ -7,7 +7,7 @@ from util import *
 import sys
 
 SNAPSHOT_AMNT = 100000  # this frequently, save a snapshot of the states
-STOP_EXPLORING = 0.50 # after how many games do we set epsilon to 0?
+STOP_EXPLORING = 0.60 # after how many games do we set epsilon to 0?
 
 def main():
     amount = 5000
@@ -16,7 +16,7 @@ def main():
 
     reversi = Reversi(size=8, WhiteAgent=QLearningAgent, BlackAgent=QLearningAgent, silent=True, learning_mode=True, weights_file='8x8_duel_network/q_weights')
     epsilon = 1.0
-    end_exploration = floor(amount * STOP_EXPLORING)
+    end_exploration = max(1, floor(amount * STOP_EXPLORING))
 
     try:
         for i in range(1, amount + 1):

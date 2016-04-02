@@ -6,7 +6,8 @@ from util import *
 
 import sys
 
-SNAPSHOT_AMNT = 5  # this frequently, save a snapshot of the states
+SNAPSHOT_AMNT = 100000  # this frequently, save a snapshot of the states
+STOP_EXPLORING = 0.50 # after how many games do we set epsilon to 0?
 
 def main():
     amount = 5000
@@ -15,22 +16,26 @@ def main():
 
     reversi = Reversi(size=8, WhiteAgent=QLearningAgent, BlackAgent=QLearningAgent, silent=True, learning_mode=True, weights_file='8x8_duel_network/q_weights')
     epsilon = 1.0
-    end_exploration = floor(amount * 0.80)
-    for i in range(1, amount + 1):
-        print('playing game {}/{} ({:2.2f}%)'.format(i, amount, i * 100 / amount))
-        reversi.white_agent.set_epsilon(epsilon)
-        reversi.black_agent.set_epsilon(epsilon) 
-        reversi.reset()
-        reversi.play_game()
+    end_exploration = floor(amount * STOP_EXPLORING)
 
-        if i % SNAPSHOT_AMNT == 0:
-            amnt = i / SNAPSHOT_AMNT 
-            reversi.white_agent.save_weights('_' + str(amnt))
-            reversi.black_agent.save_weights('_' + str(amnt))
+    try:
+        for i in range(1, amount + 1):
+            print('playing game {}/{} ({:2.2f}%)'.format(i, amount, i * 100 / amount))
+            reversi.white_agent.set_epsilon(epsilon)
+            reversi.black_agent.set_epsilon(epsilon) 
+            reversi.reset()
+            reversi.play_game()
 
-        # epsilon begins at 1, reaches 0 at 80% game completion
-        epsilon -= (1 / end_exploration)
-        epsilon = max(epsilon, 0)
+            if i % SNAPSHOT_AMNT == 0:
+                amnt = i / SNAPSHOT_AMNT 
+                reversi.white_agent.save_weights('_' + str(amnt))
+                reversi.black_agent.save_weights('_' + str(amnt))
+
+            # epsilon begins at 1, reaches 0 at 80% game completion
+            epsilon -= (1 / end_exploration)
+            epsilon = max(epsilon, 0)
+    except KeyboardInterrupt:
+        print('Stopping.  Will save weights before quitting.')
 
     reversi.white_agent.save_weights('')
     reversi.black_agent.save_weights('')

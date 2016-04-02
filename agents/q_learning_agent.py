@@ -34,8 +34,7 @@ class QLearningAgent(Agent):
         self.learning_mode = self.kwargs.get('learning_mode', False)
 
         # initialize the model
-        self.model = self.get_model(self.kwargs.get('model_file', MODEL_FILENAME), self.board_size)
-        self.model.compile(loss='mse', optimizer=RMSprop())
+        self.model = self.get_model(self.kwargs.get('model_file', False), self.board_size)
 
         self.weights_file = self.kwargs.get('weights_file', False)
         if not self.weights_file:
@@ -253,6 +252,8 @@ class QLearningAgent(Agent):
             model.add(Dense(size, init='zero'))
             model.add(Activation('tanh')) # tanh or linear
 
+        rms_opt = RMSprop(lr=0.1, momentum=0.0)
+        model.compile(loss='mse', optimizer=rms_opt)
         return model
 
     @staticmethod

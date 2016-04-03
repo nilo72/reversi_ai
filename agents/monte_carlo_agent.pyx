@@ -25,13 +25,12 @@ class MonteCarloAgent(Agent):
     def observe_win(self, winner):
         pass
 
-    def get_action(self, game_state):
+    def get_action(self, game_state, legal_moves):
         """Interface from class Agent.  Given a game state
         and a set of legal moves, pick a legal move and return it.
         This will be called by the Reversi game object. Does not mutate
         the game state argument."""
         # make a deep copy to keep the promise that we won't mutate
-        legal_moves = self.reversi.legal_moves(game_state)
         if not legal_moves:
             return None
         game_state = copy.deepcopy(game_state)
@@ -153,12 +152,15 @@ class MonteCarloAgent(Agent):
 
         return cur_node
 
-    @staticmethod
-    def best_child(node):
+    def best_child(self, node):
+        enemy_turn = (node.game_state[1] != self.color)
         C = 1  # 'exploration' value
         values = {}
         for child in node.children:
             wins, plays = child.get_wins_plays()
+            if enemy_turn:
+                # the enemy will play against us, not for us
+                wins = plays - wins
             _, parent_plays = node.get_wins_plays()
             assert parent_plays > 0
             values[child] = (wins / plays) \

@@ -112,17 +112,16 @@ class MonteCarloAgent(Agent):
         """Given a root node, determine which child to visit
         using Upper Confidence Bound."""
         cur_node = root
+        
         while True:
-
             legal_moves = self.reversi.legal_moves(cur_node.game_state)
             if not legal_moves:
-                if self.reversi.winner(cur_node.game_state):
+                if self.reversi.winner(cur_node.game_state) is not False:
                     # the game is won
                     return cur_node
                 else:
-                    # game not won, so turn passes to other player
-                    next_state = (cur_node.game_state[0],
-                                  opponent[cur_node.game_state[1]])
+                    # no moves, so turn passes to other player
+                    next_state = self.reversi.next_state(cur_node.game_state, None)
                     pass_node = Node(next_state)
                     cur_node.add_child(pass_node)
                     self.state_node[next_state] = pass_node
@@ -133,8 +132,12 @@ class MonteCarloAgent(Agent):
                 # children are not fully expanded, so expand one
                 unexpanded = [
                     move for move in legal_moves
-                    if not cur_node.visited_move(move)
+                    if move not in cur_node.moves_expanded
                 ]
+
+                # note to self: this tree of nodes includes nodes of both players, right?
+                # so are you always assuming the enemy makes bad moves when you .best_child()
+                # on one of their states?
 
                 assert len(unexpanded) > 0
                 move = random.choice(unexpanded)
@@ -207,9 +210,6 @@ class Node:
         self.children.append(node)
         self.moves_expanded.add(node.move)
         node.parent = self
-
-    def visited_move(self, move):
-        return move in self.moves_expanded
 
     def has_children(self):
         return len(self.children) > 0

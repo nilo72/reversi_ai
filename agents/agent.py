@@ -7,7 +7,7 @@ class Agent:
     def __init__(self, reversi, color):
         raise NotImplementedError
 
-    def get_action(self, game_state, legal_moves):
+    def get_action(self, game_state, legal_moves=None):
         raise NotImplementedError
 
     def observe_win(self, winner):

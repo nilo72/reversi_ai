@@ -95,12 +95,10 @@ class QLearningAgent(Agent):
            The state is the final board state of the game."""
 
         # call get_action to train our agent on the winning move
-        self.get_action(state)
+        self.get_action(state, [])
 
 
-    def get_action(self, game_state):
-        legal = self.reversi.legal_moves(game_state)
-
+    def get_action(self, game_state, legal):
         if self.learning_mode:
             # learning mode enabled, so reinforce
 

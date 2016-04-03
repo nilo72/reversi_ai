@@ -44,7 +44,7 @@ class Reversi:
         while self.winner(state) is False:
             color = state[1]
             picked = self.agent_pick_move(state)
-            state = self.apply_move(state, picked)
+            state = self.next_state(state, picked)
             self.print_board(state)
             if not picked:
                 info('{} had no moves and passed their turn.'.format(color_name[color]))
@@ -72,9 +72,9 @@ class Reversi:
         legal_moves = self.legal_moves(state)
         picked = None
         if color == WHITE:
-            picked = self.white_agent.get_action(state)
+            picked = self.white_agent.get_action(state, legal_moves)
         elif color == BLACK:
-            picked = self.black_agent.get_action(state)
+            picked = self.black_agent.get_action(state, legal_moves)
         else:
             raise ValueError
 
@@ -164,6 +164,7 @@ class Reversi:
             game_state = (game_state[0], opponent[game_state[1]])
             return game_state
 
+        cdef int x, y
         x, y = move
         color = game_state[1]
         board = game_state[0]
@@ -175,6 +176,8 @@ class Reversi:
             enemy_color = WHITE
 
         # now check in all directions, including diagonal
+        cdef int dy, dx, yp, xp
+        cdef size_t distance
         to_flip = []
         for dy in range(-1, 2):
             for dx in range(-1, 2):

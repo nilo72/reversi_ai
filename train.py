@@ -7,7 +7,7 @@ from util import *
 
 import sys
 
-SNAPSHOT_AMNT = 100000  # this frequently, save a snapshot of the states
+SNAPSHOT_AMNT = 50000  # this frequently, save a snapshot of the states
 STOP_EXPLORING = 0.60 # after how many games do we set epsilon to 0?
 
 def main():
@@ -18,6 +18,7 @@ def main():
     reversi = Reversi(size=8, WhiteAgent=QLearningAgent, BlackAgent=QLearningAgent, silent=True, learning_mode=True, weights_file='8x8_duel_network/q_weights')
     epsilon = 1.0
     end_exploration = max(1, floor(amount * STOP_EXPLORING))
+    print('exploration will halt at {} games.'.format(end_exploration))
 
     start = time.time()
     try:
@@ -40,7 +41,7 @@ def main():
         print('Stopping.  Will save weights before quitting.')
 
     seconds = time.time() - start
-    print('time: {:.2f} minutes. per game: {:.2f}ms.'.format(seconds / 60.0, (seconds / float(amount)) * 1000.0))
+    print('time: {:.2f} minutes. per game: {:.2f}ms.'.format(seconds / 60.0, (seconds / float(i)) * 1000.0))
     reversi.white_agent.save_weights('')
     reversi.black_agent.save_weights('')
 

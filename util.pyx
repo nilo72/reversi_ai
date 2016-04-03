@@ -1,3 +1,4 @@
+from cpython cimport bool
 BLACK = 1
 WHITE = -1
 EMPTY = 0
@@ -22,3 +23,6 @@ def info(message):
 def info_newline():
     if not silent:
         print()
+
+cpdef bool is_in_bounds(int x, int y, int size):
+    return 0 <= x < size and 0 <= y < size

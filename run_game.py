@@ -68,7 +68,9 @@ def main(**kwargs):
         summary.append(message)
         reversi.reset()
 
-    print('time: {} minutes'.format((time.time() - start) / 60))
+    seconds_spent = time.time() - start
+    ms_per_game = (seconds_spent / amount) * 1000 
+    print('time: {0:.2f} minutes ({0:.2f}ms per game)'.format(seconds_spent / 60, ms_per_game))
     print('summary: {} games played'.format(len(summary)))
     for each in summary:
         info(each)

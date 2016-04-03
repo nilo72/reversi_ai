@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import time
 from agents.q_learning_agent import QLearningAgent
 from game.reversi import Reversi
 from math import floor
@@ -18,6 +19,7 @@ def main():
     epsilon = 1.0
     end_exploration = max(1, floor(amount * STOP_EXPLORING))
 
+    start = time.time()
     try:
         for i in range(1, amount + 1):
             print('playing game {}/{} ({:2.2f}%)'.format(i, amount, i * 100 / amount))
@@ -37,6 +39,8 @@ def main():
     except KeyboardInterrupt:
         print('Stopping.  Will save weights before quitting.')
 
+    seconds = time.time() - start
+    print('time: {:.2f} minutes. per game: {:.2f}ms.'.format(seconds / 60.0, (seconds / float(amount)) * 1000.0))
     reversi.white_agent.save_weights('')
     reversi.black_agent.save_weights('')
 

@@ -95,7 +95,20 @@ class Board:
         return self.__str__()
 
     def __hash__(self):
-        return hash(str(self.board))
+        # return hash(str(self.board))
+        cdef int hash = 5138
+
+        cdef size_t y, x
+        for y in range(self.size):
+            for x in range(self.size):
+                hash += self.board[y][x]
+                hash += (hash << 10)
+                hash ^= (hash >> 6)
+
+        hash += (hash << 3)
+        hash ^= (hash >> 11)
+        hash += (hash << 15)
+        return hash
 
     def __eq__(self, other):
         if self.black_stones != other.black_stones:

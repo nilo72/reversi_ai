@@ -8,6 +8,12 @@ class HumanAgent(Agent):
         self.reversi = reversi
         self.color = color
 
+    def reset(self):
+        pass
+
+    def observe_win(self, winner):
+        pass
+
     def get_action(self, game_state):
         legal = self.reversi.legal_moves(game_state)
         if not legal:

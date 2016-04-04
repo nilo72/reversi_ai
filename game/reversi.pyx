@@ -51,10 +51,10 @@ class Reversi:
             else:
                 info('{} plays at {}'.format(color_name[color], str(picked)))
             info_newline()
-        self.print_board(state)
-
         self.white_agent.observe_win(state)
         self.black_agent.observe_win(state)
+
+        self.print_board(state)
 
         # figure out who won
         black_count, white_count = state[0].get_stone_counts()

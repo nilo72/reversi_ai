@@ -20,9 +20,6 @@ def main(**kwargs):
     input_args = prop_parse(argv)
     input_args.update(kwargs)
 
-    if input_args['WhiteAgent'] == 'q_learning' or input_args['BlackAgent'] == 'q_learning':
-        from agents import q_learning_agent
-
     if len(argv) <= 1 and len(kwargs) <= 1:
         print('necessary inputs:')
         print('  BlackAgent=, WhiteAgent=,')
@@ -35,6 +32,9 @@ def main(**kwargs):
         # convert 'human' to human_agent.HumanAgent, etc
         if v in prop_names:
             input_args[k] = prop_names[v]
+        elif v == 'q_learning':
+            from agents import q_learning_agent
+            input_args[k] = q_learning_agent.QLearningAgent 
 
     if any(val == monte_carlo_agent.MonteCarloAgent for val in input_args.values()) \
             and not input_args.get('sim_time', False):

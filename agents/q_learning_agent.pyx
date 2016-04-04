@@ -19,11 +19,11 @@ MODEL_FILENAME = '8x8_duel_network/q_model.json'
 WEIGHTS_FILENAME = '8x8_duel_network/q_weights'
 
 # Amount of nodes in the hidden layer
-HIDDEN_SIZE = 44
+HIDDEN_SIZE = 36
 # weight for neural network refitting -- NOT the alpha value
-LEARNING_RATE = 0.1
+# LEARNING_RATE = 0.1
 # according to the research paper, momentum of 0 is effective
-MOMENTUM = 0.0
+# MOMENTUM = 0.0
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -74,9 +74,9 @@ class QLearningAgent(Agent):
     def reset_learning(self):
         """Reset this agent to its beginning state for learning."""
         self.prev_state = None
-        self.prev_q = None
+        self.prev_qs = None
         self.prev_move = None
-        self.alpha = 0.1
+        self.alpha = 0.1 # should not change
 
     @staticmethod
     def load_weights(weights_file, model):
@@ -126,22 +126,22 @@ class QLearningAgent(Agent):
                 # if there are no moves but the game isn't over yet, don't reinforce yet
                 if not legal and winner is False:
                     return None # pass turn
+                else:
+                    best_move, new_qs = self.update_model(self.model, self.prev_state, \
+                            self.prev_move, self.prev_qs, legal, game_state, reward, winner)
 
-                best_move, new_qs = self.update_model(self.model, self.prev_state, \
-                        self.prev_move, self.prev_qs, legal, game_state, reward, winner)
+                    # epsilon greedy exploration
+                    if self.epsilon > random.random():
+                        if legal:
+                            best_move = random.choice(legal)
+                        else:
+                            best_move = None
 
-                # epsilon greedy exploration
-                if self.epsilon > random.random():
-                    if legal:
-                        best_move = random.choice(legal)
-                    else:
-                        best_move = None
+                    self.prev_move = best_move
+                    self.prev_qs = new_qs
+                    self.prev_state = game_state
 
-                self.prev_move = best_move
-                self.prev_qs = new_qs
-                self.prev_state = game_state
-
-                return best_move
+                    return best_move
         else:
             # just follow the policy
             if not legal:
@@ -157,7 +157,6 @@ class QLearningAgent(Agent):
             best move its q_val that it found while reinforcing. Do NOT call this method
             in a game state where you have no moves, UNLESS it is a winning game state."""
         # Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r + maxQ(s', a'))
-        move_offset = self.to_offset(prev_action)
         max_q = None
         next_q_vals = None
         best_move = None
@@ -168,6 +167,7 @@ class QLearningAgent(Agent):
             # we have a winner! Don't need max_q, it's all in the reward
             max_q = 0
 
+        move_offset = self.to_offset(prev_action)
         q_vals[0][move_offset] = (1 - self.alpha) * q_vals[0][move_offset] + \
                 self.alpha * (reward + max_q)
         model.fit(self.numpify(prev_state), q_vals, batch_size = 1, nb_epoch=1, verbose=0)
@@ -181,9 +181,6 @@ class QLearningAgent(Agent):
 
 
     def policy(self, game_state, legal):
-        if not legal:
-            return None
-
         # ask neural network for best valued action
         q_vals = self.model.predict(self.numpify(game_state), batch_size = 1)
         best_move, best_val = self.best_move_val(legal, q_vals)
@@ -226,10 +223,7 @@ class QLearningAgent(Agent):
         """Given x,y coords, convert to an offset
         of an equal flattened array."""
         x, y = move
-        offset = 0
-        offset += (y * self.board_size)
-        offset += x
-        return offset
+        return (y * self.board_size) + x
 
     @staticmethod
     def get_model(model_file, board_size):
@@ -257,9 +251,9 @@ class QLearningAgent(Agent):
             model.add(Dense(size, init='zero'))
             model.add(Activation('tanh')) # tanh or linear
 
-        sgd_opt = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
-        # rms_opt = RMSprop() # don't change RMSprop values, they should be defaults
-        model.compile(loss='mse', optimizer=sgd_opt)
+        # sgd_opt = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
+        rms_opt = RMSprop() # don't change RMSprop values, they should be defaults
+        model.compile(loss='mse', optimizer=rms_opt)
         return model
 
     @staticmethod

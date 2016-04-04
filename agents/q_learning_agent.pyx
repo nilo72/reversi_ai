@@ -26,7 +26,7 @@ HIDDEN_SIZE = 36
 # MOMENTUM = 0.0
 
 WIN_REWARD = 1
-LOSE_REWARD = -1
+LOSE_REWARD = 0
 
 class QLearningAgent(Agent):
 

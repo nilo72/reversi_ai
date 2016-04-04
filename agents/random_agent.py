@@ -10,8 +10,7 @@ class RandomAgent(Agent):
         self.reversi = reversi
         self.color = color
 
-    def get_action(self, state):
-        legal_moves = self.reversi.legal_moves(state)
+    def get_action(self, state, legal_moves):
         if not legal_moves:
             return None
         return random.choice(legal_moves)

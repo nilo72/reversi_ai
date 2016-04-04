@@ -2,13 +2,13 @@
 from sys import argv
 import time
 from game.reversi import Reversi
-from agents import random_agent, monte_carlo_agent, human_agent, q_learning_agent
+from agents import random_agent, monte_carlo_agent, human_agent
 from util import *
 from prop_parse import prop_parse
 
 prop_names = {
         # agent names. if user passes BlackAgent=human, becomes human_agent.Hu...
-        'q_learning': q_learning_agent.QLearningAgent,
+        # 'q_learning': q_learning_agent.QLearningAgent,
         'monte_carlo': monte_carlo_agent.MonteCarloAgent,
         'random': random_agent.RandomAgent,
         'human': human_agent.HumanAgent,
@@ -19,6 +19,9 @@ def main(**kwargs):
 
     input_args = prop_parse(argv)
     input_args.update(kwargs)
+
+    if input_args['WhiteAgent'] == 'q_learning' or input_args['BlackAgent'] == 'q_learning':
+        from agents import q_learning_agent
 
     if len(argv) <= 1 and len(kwargs) <= 1:
         print('necessary inputs:')

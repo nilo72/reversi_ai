@@ -14,8 +14,7 @@ class HumanAgent(Agent):
     def observe_win(self, winner):
         pass
 
-    def get_action(self, game_state):
-        legal = self.reversi.legal_moves(game_state)
+    def get_action(self, game_state, legal):
         if not legal:
             return None
         choice = None

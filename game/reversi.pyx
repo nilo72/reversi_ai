@@ -1,5 +1,5 @@
 import random
-import copy
+from copy import deepcopy
 import pdb
 from game.board import Board, BLACK, WHITE, EMPTY
 from agents.human_agent import HumanAgent
@@ -51,6 +51,7 @@ class Reversi:
             else:
                 info('{} plays at {}'.format(color_name[color], str(picked)))
             info_newline()
+
         self.white_agent.observe_win(state)
         self.black_agent.observe_win(state)
 
@@ -152,9 +153,7 @@ class Reversi:
     def next_state(self, game_state, move):
         """Given a game_state and a position for a new piece, return a new game_state
         reflecting the change.  Does not modify the input game_state."""
-        game_state_copy = copy.deepcopy(game_state)
-        result = self.apply_move(game_state_copy, move)
-        return result
+        return  self.apply_move(deepcopy(game_state), move)
 
     @staticmethod
     def apply_move(game_state, move):
@@ -206,11 +205,7 @@ class Reversi:
             board.flip_stone(each[0], each[1])
             # board.place_stone_at(color, each[0], each[1])
 
-        if game_state[1] == WHITE:
-            game_state = (game_state[0], BLACK)
-        elif game_state[1] == BLACK:
-            game_state = (game_state[0], WHITE)
-
+        game_state = (game_state[0], opponent[game_state[1]])
         return game_state
 
     def winner(self, game_state):

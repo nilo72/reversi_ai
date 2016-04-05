@@ -19,7 +19,7 @@ MODEL_FILENAME = 'net_weights/q_model.json'
 WEIGHTS_FILENAME = 'net_weights/q_weights'
 
 # Amount of nodes in the hidden layer
-HIDDEN_SIZE = 44
+HIDDEN_SIZE = 32
 # weight for neural network refitting -- NOT the alpha value
 LEARNING_RATE = 0.1
 # according to the research paper, momentum of 0 is effective
@@ -29,6 +29,10 @@ WIN_REWARD = 1
 LOSE_REWARD = -1
 
 ALPHA = 0.01
+
+# pick the optimizer
+# optimizer = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
+optimizer = RMSprop()  # don't change RMSprop values, they should be defaults
 
 
 class QLearningAgent(Agent):
@@ -103,10 +107,11 @@ class QLearningAgent(Agent):
            The state is the final board state of the game."""
 
         # call get_action to train our agent on the winning move
-        self.get_action(state, [])
+        self.train_network(state, [])
 
     def get_action(self, game_state, legal):
         # pdb.set_trace()
+        assert game_state[1] == self.color
         if self.learning_mode:
             # learning mode enabled, so reinforce
             return self.train_network(game_state, legal)
@@ -255,7 +260,7 @@ class QLearningAgent(Agent):
             size = board_size ** 2
             model = Sequential()
             model.add(Dense(HIDDEN_SIZE, init='zero', input_shape=(size,)))
-            model.add(Activation('softmax'))
+            model.add(Activation('tanh'))
             # model.add(Dropout(0.2))
 
             # model.add(Dense(256, init='zero'))
@@ -264,9 +269,7 @@ class QLearningAgent(Agent):
             model.add(Dense(size, init='zero'))
             model.add(Activation('linear'))  # tanh or linear
 
-        # sgd_opt = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
-        rms_opt = RMSprop()  # don't change RMSprop values, they should be defaults
-        model.compile(loss='mse', optimizer=rms_opt)
+        model.compile(loss='mse', optimizer=optimizer)
         return model
 
     @staticmethod

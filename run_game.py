@@ -69,7 +69,6 @@ def main(**kwargs):
                 color_name[winner], white_score, black_score)
         info(message)
         summary.append(message)
-        reversi.reset()
 
     seconds_spent = time.time() - start
     ms_per_game = (seconds_spent / amount) * 1000 

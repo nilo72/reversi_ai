@@ -56,10 +56,12 @@ class Reversi:
 
         self.print_board(state)
 
+
         # figure out who won
         black_count, white_count = state[0].get_stone_counts()
         winner = BLACK if black_count > white_count else WHITE
         info('{} wins.'.format(color_name[winner]))
+        self.reset()
         return winner, white_count, black_count
 
     @staticmethod

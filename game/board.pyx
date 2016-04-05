@@ -73,7 +73,7 @@ class Board:
     def __str__(self):
         result = ''
         for y in range(self.size - 1, -1, -1):
-            result += str(y) + ' '
+            result += str(y) + '| '
             for x in range(self.size):
                 if self.board[y][x] == WHITE:
                     result += WHITE_PIECE + ' '
@@ -85,6 +85,10 @@ class Board:
                     result += '? '
             result += '\n'
 
+        result += '  '
+        for x in range(self.size):
+            result += '--'
+        result += '\n'
         result += '  '
         for x in range(self.size):
             result += str(x) + ' '

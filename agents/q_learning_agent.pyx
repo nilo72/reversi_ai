@@ -19,7 +19,7 @@ MODEL_FILENAME = 'net_weights/q_model.json'
 WEIGHTS_FILENAME = 'net_weights/q_weights'
 
 # Amount of nodes in the hidden layer
-HIDDEN_SIZE = 32
+HIDDEN_SIZE = 44
 # weight for neural network refitting -- NOT the alpha value
 LEARNING_RATE = 0.1
 # according to the research paper, momentum of 0 is effective
@@ -28,11 +28,14 @@ MOMENTUM = 0.0
 WIN_REWARD = 1
 LOSE_REWARD = -1
 
-ALPHA = 0.01
+ALPHA = 0.1
 
 # pick the optimizer
 # optimizer = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
 optimizer = RMSprop()  # don't change RMSprop values, they should be defaults
+
+replay_buffer = []
+MAX_REPLAY = 64
 
 
 class QLearningAgent(Agent):
@@ -85,6 +88,7 @@ class QLearningAgent(Agent):
     def reset_learning(self):
         """Reset this agent to its beginning state for learning."""
         info('reset learning called [{}]'.format(color_name[self.color]))
+        replay_buffer = []
         self.prev_state = None
         self.prev_qs = None
         self.prev_move = None
@@ -149,9 +153,18 @@ class QLearningAgent(Agent):
             if not legal and winner is False:
                 return None  # pass turn
             else:
-                best_move, new_qs = self.update_model(
-                        self.model, self.prev_state, self.prev_move, self.prev_qs,
-                        game_state, legal, reward, winner)
+                # store transition in replay buffer
+                replay_buffer.append((deepcopy(self.prev_state), deepcopy(self.prev_move), deepcopy(game_state), reward, deepcopy(self.prev_qs), deepcopy(legal), winner)) # TODO: does this make deep copy? we hope so
+                if len(replay_buffer) > MAX_REPLAY:
+                    replay_buffer.pop(0)
+
+                # decide our best move
+                next_qs = self.model.predict(self.numpify(game_state), batch_size=1)
+                best_move, best_q = self.best_move_val(legal, next_qs)
+
+                # train on random transition from the buffer
+                s, a, sprime, r, pq, a_primes, wn = random.choice(replay_buffer)
+                self.update_model(self.model, s, a, pq, sprime, a_primes, r, wn)
 
                 # epsilon greedy exploration
                 if self.epsilon > random.random():
@@ -161,7 +174,7 @@ class QLearningAgent(Agent):
                         best_move = None
 
                 self.prev_move = best_move
-                self.prev_qs = new_qs
+                self.prev_qs = next_qs
                 self.prev_state = game_state
 
                 return best_move

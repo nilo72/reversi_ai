@@ -1,6 +1,7 @@
 import pdb
 import random
 import os.path
+from collections import deque
 from copy import deepcopy
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
@@ -28,15 +29,11 @@ MOMENTUM = 0.0
 WIN_REWARD = 1
 LOSE_REWARD = -1
 
-ALPHA = 0.1
+ALPHA = 0.01
 
 # pick the optimizer
 # optimizer = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
 optimizer = RMSprop()  # don't change RMSprop values, they should be defaults
-
-replay_buffer = []
-MAX_REPLAY = 64
-
 
 class QLearningAgent(Agent):
     def __init__(self, reversi, color, **kwargs):
@@ -49,6 +46,8 @@ class QLearningAgent(Agent):
 
         # initialize the model
         self.model = self.get_model(self.kwargs.get('model_file', False), self.board_size)
+        self.MAX_REPLAY = self.kwargs.get('max_replay', 64)
+        self.replay_buffer = []
 
         if not self.kwargs.get('weights_file', False):
             print('weights_file parameter needed for q_learning_agent. quitting.')
@@ -88,11 +87,14 @@ class QLearningAgent(Agent):
     def reset_learning(self):
         """Reset this agent to its beginning state for learning."""
         info('reset learning called [{}]'.format(color_name[self.color]))
-        replay_buffer = []
+        self.replay_buffer = deque([])
         self.prev_state = None
         self.prev_qs = None
         self.prev_move = None
         self.alpha = ALPHA  # should not change
+
+    def set_replay_len(self, length):
+        self.MAX_REPLAY = min(length, 64)
 
     @staticmethod
     def load_weights(weights_file, model):
@@ -154,16 +156,16 @@ class QLearningAgent(Agent):
                 return None  # pass turn
             else:
                 # store transition in replay buffer
-                replay_buffer.append((deepcopy(self.prev_state), deepcopy(self.prev_move), deepcopy(game_state), reward, deepcopy(self.prev_qs), deepcopy(legal), winner)) # TODO: does this make deep copy? we hope so
-                if len(replay_buffer) > MAX_REPLAY:
-                    replay_buffer.pop(0)
+                self.replay_buffer.append((deepcopy(self.prev_state), deepcopy(self.prev_move), deepcopy(game_state), reward, deepcopy(self.prev_qs), deepcopy(legal), winner)) # TODO: does this make deep copy? we hope so
+                if len(self.replay_buffer) > self.MAX_REPLAY:
+                    self.replay_buffer.popleft()
 
                 # decide our best move
                 next_qs = self.model.predict(self.numpify(game_state), batch_size=1)
                 best_move, best_q = self.best_move_val(legal, next_qs)
 
                 # train on random transition from the buffer
-                s, a, sprime, r, pq, a_primes, wn = random.choice(replay_buffer)
+                s, a, sprime, r, pq, a_primes, wn = random.choice(self.replay_buffer)
                 self.update_model(self.model, s, a, pq, sprime, a_primes, r, wn)
 
                 # epsilon greedy exploration
@@ -273,7 +275,7 @@ class QLearningAgent(Agent):
             size = board_size ** 2
             model = Sequential()
             model.add(Dense(HIDDEN_SIZE, init='zero', input_shape=(size,)))
-            model.add(Activation('tanh'))
+            model.add(Activation('relu'))
             # model.add(Dropout(0.2))
 
             # model.add(Dense(256, init='zero'))

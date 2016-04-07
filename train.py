@@ -28,6 +28,8 @@ def main():
             print('playing game {}/{} ({:2.2f}%)'.format(i, amount, i * 100 / amount))
             reversi.white_agent.set_epsilon(epsilon)
             reversi.black_agent.set_epsilon(epsilon)
+            reversi.black_agent.set_replay_len(i)
+            reversi.white_agent.set_replay_len(i)
             reversi.play_game()
 
             if i % SNAPSHOT_AMNT == 0:

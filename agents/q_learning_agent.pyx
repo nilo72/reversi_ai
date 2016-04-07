@@ -30,6 +30,7 @@ WIN_REWARD = 1
 LOSE_REWARD = -1
 
 ALPHA = 0.01
+MAX_REPLAY = 25
 
 # pick the optimizer
 # optimizer = SGD(lr=LEARNING_RATE, momentum=MOMENTUM)
@@ -46,7 +47,7 @@ class QLearningAgent(Agent):
 
         # initialize the model
         self.model = self.get_model(self.kwargs.get('model_file', False), self.board_size)
-        self.MAX_REPLAY = self.kwargs.get('max_replay', 64)
+        self.MAX_REPLAY = self.kwargs.get('max_replay', MAX_REPLAY)
         self.replay_buffer = []
 
         if not self.kwargs.get('weights_file', False):
@@ -94,7 +95,7 @@ class QLearningAgent(Agent):
         self.alpha = ALPHA  # should not change
 
     def set_replay_len(self, length):
-        self.MAX_REPLAY = min(length, 64)
+        self.MAX_REPLAY = min(length, MAX_REPLAY)
 
     @staticmethod
     def load_weights(weights_file, model):

@@ -1,6 +1,3 @@
-import sys
-
-
 class Agent:
     """An abstract class defining the interface for a Reversi agent."""
 
@@ -12,6 +9,6 @@ class Agent:
 
     def observe_win(self, winner):
         raise NotImplementedError
-    
+
     def reset(self):
         raise NotImplementedError

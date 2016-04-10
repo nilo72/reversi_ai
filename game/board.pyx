@@ -89,7 +89,7 @@ class Board:
         for x in range(self.size):
             result += '--'
         result += '\n'
-        result += '  '
+        result += '   '
         for x in range(self.size):
             result += str(x) + ' '
 

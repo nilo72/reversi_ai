@@ -13,8 +13,8 @@ class Board:
         assert size >= 4 and size % 2 == 0
         self.black_stones = 0
         self.white_stones = 0
-        # self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)] 
-        self.board = np.zeros((size, size), dtype=np.int8)
+        self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)] 
+        # self.board = np.zeros((size, size), dtype=np.int8)
         self.init_starting_position()
 
     def init_starting_position(self):
@@ -23,8 +23,8 @@ class Board:
         lower = midpoint - 1
         higher = midpoint
         
-        # self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)]
-        self.board = np.zeros((self.size, self.size), dtype=np.int8)
+        self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)]
+        # self.board = np.zeros((self.size, self.size), dtype=np.int8)
         self.board[lower][lower] = BLACK
         self.board[higher][lower] = WHITE
         self.board[lower][higher] = WHITE
@@ -119,7 +119,7 @@ class Board:
             return False
         if self.white_stones != other.white_stones:
             return False
-        # return self.board == other.board
-        if self.__hash__() != other.__hash__():
-            return False
-        return np.array_equal(self.board, other.board)
+        # if self.__hash__() != other.__hash__():
+            # return False
+        # return np.array_equal(self.board, other.board)
+        return self.board == other.board

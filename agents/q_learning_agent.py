@@ -108,8 +108,8 @@ class QLearningAgent(Agent):
         board = state[0].board
         assert len(board) > 0
         size = len(board) * len(board[0])
-        # return np.array(board).reshape(1, size)
-        return np.reshape(board, (1, size))
+        return np.array(board).reshape(1, size)
+        # return np.reshape(board, (1, size))
 
     def observe_win(self, state):
         """Called by the game at end of game to present the agent with the final board state."""

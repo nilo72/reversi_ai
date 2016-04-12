@@ -1,3 +1,8 @@
+import numpy as np
+K = 0
+V = 1
+
+
 class CacheDict:
 
     def __init__(self):
@@ -16,10 +21,11 @@ class CacheDict:
 
     def get(self, k):
         size = len(self.c_list)
-        if size >= 1 and self.c_list[0][0] == k:
-            return self.c_list[0][1]
-        elif size >= 2 and self.c_list[1][0] == k:
-            return self.c_list[1][1]
+        # if size >= 1 and self.c_list[0][K] == k:
+        if size >= 1 and np.array_equal(self.c_list[0][K],k):
+            return self.c_list[0][V]
+        # elif size >= 2 and self.c_list[1][K] == k:
+        elif size >= 2 and np.array_equal(self.c_list[1][K], k):
+            return self.c_list[1][V]
         else:
             return None
-            

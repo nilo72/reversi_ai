@@ -7,7 +7,7 @@ from util import *
 
 import sys
 
-SNAPSHOT_AMNT = 5000  # this frequently, save a snapshot of the states
+SNAPSHOT_AMNT = 100  # this frequently, save a snapshot of the states
 STOP_EXPLORING = 0.60  # after how many games do we set epsilon to 0?
 
 
@@ -16,8 +16,7 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         amount = int(sys.argv[1])
 
-    reversi = Reversi(size=8, WhiteAgent=QLearningAgent, BlackAgent=QLearningAgent, silent=True, learning_mode=True,
-            weights_file='net_weights/q_weights')
+    reversi = Reversi(size=8, WhiteAgent=QLearningAgent, BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
     epsilon = 1.0
     end_exploration = max(1, floor(amount * STOP_EXPLORING))
     print('exploration will halt at {} games.'.format(end_exploration))

@@ -1,6 +1,6 @@
 import hashlib
-# import numpy as np
-# cimport numpy as np
+import numpy as np
+cimport numpy as np
 from util import *
 from cpython cimport bool
 
@@ -13,8 +13,8 @@ class Board:
         assert size >= 4 and size % 2 == 0
         self.black_stones = 0
         self.white_stones = 0
-        self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)] 
-        # self.board = np.zeros((size, size))
+        # self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)] 
+        self.board = np.zeros((size, size))
         self.init_starting_position()
 
     def init_starting_position(self):
@@ -23,8 +23,8 @@ class Board:
         lower = midpoint - 1
         higher = midpoint
         
-        self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)]
-        # self.board = np.zeros((self.size, self.size))
+        # self.board = [[EMPTY for _ in range(self.size)] for _ in range(self.size)]
+        self.board = np.zeros((self.size, self.size))
         self.board[lower][lower] = BLACK
         self.board[higher][lower] = WHITE
         self.board[lower][higher] = WHITE

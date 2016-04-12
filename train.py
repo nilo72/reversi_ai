@@ -7,7 +7,7 @@ from util import *
 
 import sys
 
-SNAPSHOT_AMNT = 100  # this frequently, save a snapshot of the states
+SNAPSHOT_AMNT = 1000  # this frequently, save a snapshot of the states
 STOP_EXPLORING = 0.60  # after how many games do we set epsilon to 0?
 
 

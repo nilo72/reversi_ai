@@ -11,7 +11,8 @@ WEIGHTS_FILENAME = 'neural/q_weights'
 HIDDEN_SIZE = 44
 optimizer = None
 ALPHA = 0.1
-BATCH_SIZE = 25
+BATCH_SIZE = 10
+MAX_MEMORY = 32
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -27,8 +28,7 @@ class QLearningAgent(Agent):
         self.model = self.get_model(kwargs.get('model_file', None))
 
         weights_num = kwargs.get('weights_num', '')
-        if weights_num != '':
-            self.load_weights(str(float(weights_num)))
+        self.load_weights(weights_num)
 
         # training values
         self.prev_move = None
@@ -37,13 +37,16 @@ class QLearningAgent(Agent):
         self.memory = []
         self.MEM_LEN = 1
 
-        self.save_model(self.model)
+        if kwargs.get('model_file', None) is None:
+            # if user didn't specify a model file, save the one we generated
+            self.save_model(self.model)
 
     def set_epsilon(self, val):
+        print('epsilon set to: {}'.format(val))
         self.epsilon = val
 
     def set_replay_len(self, val):
-        self.MEM_LEN = val
+        self.MEM_LEN = min(val, MAX_MEMORY)
 
     def get_action(self, state, legal_moves=None):
         """Agent method, called by the game to pick a move."""
@@ -169,10 +172,6 @@ class QLearningAgent(Agent):
             self.prev_move = best_move
             self.prev_state = state
 
-    def update_model(self, prev_state, prev_qvals, prev_move, state, legal, reward, winner):
-        # Q(s,a) = (1-alpha) * Q(s,a) + alpha * (r + maxQ(s', a'))
-        pass
-
     def best_move_val(self, q_vals, legal_moves):
         """Given a list of moves and a q_val array, return the move with the highest q_val and the q_val."""
         if not legal_moves:
@@ -209,7 +208,7 @@ class QLearningAgent(Agent):
                 quit()
             print('loaded model file {}'.format(filename))
         else:
-            info('no model file loaded, generating new model.')
+            print('no model file loaded, generating new model.')
             size = self.reversi.size ** 2
             model = Sequential()
             model.add(Dense(HIDDEN_SIZE, init='zero', input_shape=(size,)))
@@ -230,10 +229,14 @@ class QLearningAgent(Agent):
 
     def save_weights(self, suffix):
         filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color], suffix, '.h5')
-        info('saving weights to {}'.format(filename))
-        self.model.save_weights(filename)
+        print('saving weights to {}'.format(filename))
+        self.model.save_weights(filename, overwrite=True)
 
     def load_weights(self, suffix):
-        filename = '{}{}_{}{}'.format(WEIGHTS_FILENAME, color_name[self.color], suffix, '.h5')
-        info('loading weights from {}'.format(filename))
-        self.model.load_weights(filename)
+        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color], suffix, '.h5')
+        print('loading weights from {}'.format(filename))
+        try:
+            self.model.load_weights(filename)
+        except:
+            print('Couldn\'t load weights file {}! Quitting.'.format(filename))
+            quit()

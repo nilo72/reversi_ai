@@ -3,8 +3,7 @@ from sys import argv
 import run_game
 from prop_parse import prop_parse
 
-AMOUNT = 50 
-
+AMOUNT = 25
 
 
 def main():

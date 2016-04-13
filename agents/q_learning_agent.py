@@ -8,10 +8,9 @@ from agents.experience_replay import ExperienceReplay
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
-HIDDEN_SIZE = 44
-optimizer = None
-ALPHA = 0.1
-BATCH_SIZE = 10
+HIDDEN_SIZE = 128
+ALPHA = 0.01
+BATCH_SIZE = 16
 
 WIN_REWARD = 1
 LOSE_REWARD = -1

@@ -44,7 +44,7 @@ def main():
 
             # epsilon begins at 1, reaches 0 at 80% game completion
             epsilon -= (1 / end_exploration)
-            epsilon = max(epsilon, 0)
+            epsilon = max(epsilon, 0.01)
     except KeyboardInterrupt:
         print('Stopping.  Will save weights before quitting.')
 

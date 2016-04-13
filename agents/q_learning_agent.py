@@ -1,10 +1,10 @@
-import numpy as np
 import random
 from agents import Agent
 from keras.layers import Dense, Activation
 from keras.models import Sequential, model_from_json
 from keras.optimizers import RMSprop, SGD
-from util import info, opponent, color_name
+from util import info, opponent, color_name, to_offset, numpify
+from agents.experience_replay import ExperienceReplay
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
@@ -12,7 +12,6 @@ HIDDEN_SIZE = 44
 optimizer = None
 ALPHA = 0.1
 BATCH_SIZE = 10
-MAX_MEMORY = 32
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -34,19 +33,19 @@ class QLearningAgent(Agent):
         self.prev_move = None
         self.prev_state = None
         self.epsilon = 0.0
-        self.memory = []
         self.MEM_LEN = 1
+        print('creating default ExperienceReplay with len 256')
+        self.memory = ExperienceReplay(256)
 
         if kwargs.get('model_file', None) is None:
             # if user didn't specify a model file, save the one we generated
             self.save_model(self.model)
 
     def set_epsilon(self, val):
-        print('epsilon set to: {}'.format(val))
         self.epsilon = val
 
-    def set_replay_len(self, val):
-        self.MEM_LEN = min(val, MAX_MEMORY)
+    def set_memory(self, memory):
+        self.memory = memory
 
     def get_action(self, state, legal_moves=None):
         """Agent method, called by the game to pick a move."""
@@ -64,56 +63,6 @@ class QLearningAgent(Agent):
             else:
                 return self.policy(state, legal_moves)
 
-    def remember(self, S, a, r, Sp, l, win):
-        self.memory.append((S, a, r, Sp, l, win))
-        if len(self.memory) > self.MEM_LEN:
-            self.memory.pop(0)
-
-    def get_replay(self, batch_size):
-        # (S, a, r, Sp, legal, win) tuple
-        S, a, r, Sp, l, win = range(6)  # indices
-        model = self.model
-
-        if batch_size > len(self.memory):
-            batch_size = len(self.memory)
-        replays = random.sample(self.memory, batch_size)
-
-        # now format for training
-        board_size = self.reversi.size
-        inputs = np.empty((batch_size, board_size ** 2))
-        targets = np.empty((batch_size, board_size ** 2))
-        for index, replay in enumerate(replays):
-            if replay[win] is False and not replay[l]:
-                continue  # no legal moves, and not a win
-            move = self.to_offset(replay[a])
-            state = self.numpify(replay[S])
-            state_prime = self.numpify(replay[Sp])
-            prev_qvals = model.predict(state)
-
-            q_prime = None
-            if win is False:
-                next_qvals = model.predict(state_prime)
-                _, best_q = self.best_move_val(next_qvals, replay[l])
-                q_prime = (1 - ALPHA) * \
-                    prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
-            else:
-                q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * replay[r]
-            prev_qvals[0][move] = q_prime
-            inputs[index] = state
-            targets[index] = prev_qvals
-
-        return inputs, targets
-
-    @staticmethod
-    def numpify(state):
-        """Given a state (board, color) tuple, return the flattened numpy
-        version of the board's array."""
-        board = state[0].board
-        assert len(board) > 0
-        size = len(board) * len(board[0])
-        return np.array(board).reshape(1, size)
-        # return np.reshape(board, (1, size))
-
     def observe_win(self, state):
         """Called by the game at end of game to present the agent with the final board state."""
         if self.learning_enabled:
@@ -127,7 +76,6 @@ class QLearningAgent(Agent):
     def reset_learning(self):
         self.prev_move = None
         self.prev_state = None
-        self.memory = []
 
     def policy(self, state, legal_moves):
         """The policy of picking an action based on their weights."""
@@ -135,7 +83,7 @@ class QLearningAgent(Agent):
             return None
 
         best_move, _ = self.best_move_val(
-            self.model.predict(self.numpify(state)),
+            self.model.predict(numpify(state)),
             legal_moves
         )
         return best_move
@@ -144,7 +92,7 @@ class QLearningAgent(Agent):
         model = self.model
         if self.prev_state is None:
             # on first move, no training to do yet
-            q_vals = model.predict(self.numpify(state))
+            q_vals = model.predict(numpify(state))
             best_move, _ = self.best_move_val(q_vals, legal_moves)
 
             self.prev_move = best_move
@@ -159,14 +107,14 @@ class QLearningAgent(Agent):
             elif winner is not False:
                 raise ValueError
 
-            self.remember(self.prev_state, self.prev_move,
+            self.memory.remember(self.prev_state, self.prev_move,
                           reward, state, legal_moves, winner)
 
             # get an experience from memory and train on it
-            states, targets = self.get_replay(BATCH_SIZE)
+            states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
             model.train_on_batch(states, targets)
 
-            q_vals = model.predict(self.numpify(state))
+            q_vals = model.predict(numpify(state))
             best_move, _ = self.best_move_val(q_vals, legal_moves)
 
             self.prev_move = best_move
@@ -179,9 +127,9 @@ class QLearningAgent(Agent):
         else:
             best_q = None
             best_move = None
-
+            size = self.reversi.size
             for move in legal_moves:
-                offset = self.to_offset(move)
+                offset = to_offset(move, size)
                 val = q_vals[0][offset]
                 info('{}: {}'.format(move, val))
                 if best_q is None or val > best_q:
@@ -191,10 +139,6 @@ class QLearningAgent(Agent):
                     best_move.append(move)
 
             return random.choice(best_move), best_q
-
-    def to_offset(self, move):
-        x, y = move
-        return y * self.reversi.size + x
 
     def get_model(self, filename=None):
         """Given a filename, load that model file; otherwise, generate a new model."""
@@ -238,5 +182,4 @@ class QLearningAgent(Agent):
         try:
             self.model.load_weights(filename)
         except:
-            print('Couldn\'t load weights file {}! Quitting.'.format(filename))
-            quit()
+            print('Couldn\'t load weights file {}! Will generate it.'.format(filename))

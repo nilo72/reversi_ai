@@ -3,7 +3,7 @@ from sys import argv
 import run_game
 from prop_parse import prop_parse
 
-AMOUNT = 100
+AMOUNT = 50 
 
 
 
@@ -14,7 +14,7 @@ def main():
 
     summary = []
     for i in range(1, AMOUNT + 1):
-        input_args['weights_num'] = i
+        input_args['weights_num'] = '_' + str(float(i))
         print('testing weights {}'.format(i))
         result = run_game.main(**input_args)
         print('weight {} black won {:.2f}'.format(i, result['Black']))

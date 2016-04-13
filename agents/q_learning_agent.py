@@ -56,12 +56,15 @@ class QLearningAgent(Agent):
             # no actions available
             return None
         else:
+            move = None
+            if self.epsilon > random.random():
+                move = random.choice(legal_moves)
+            else:
+                move = self.policy(state, legal_moves)
             if self.learning_enabled:
                 self.train(state, legal_moves)
-            if self.epsilon > random.random():
-                return random.choice(legal_moves)
-            else:
-                return self.policy(state, legal_moves)
+                self.prev_move = move
+            return move
 
     def observe_win(self, state):
         """Called by the game at end of game to present the agent with the final board state."""
@@ -95,7 +98,6 @@ class QLearningAgent(Agent):
             q_vals = model.predict(numpify(state))
             best_move, _ = self.best_move_val(q_vals, legal_moves)
 
-            self.prev_move = best_move
             self.prev_state = state
         else:
             # add new info to replay memory
@@ -108,7 +110,7 @@ class QLearningAgent(Agent):
                 raise ValueError
 
             self.memory.remember(self.prev_state, self.prev_move,
-                          reward, state, legal_moves, winner)
+                                 reward, state, legal_moves, winner)
 
             # get an experience from memory and train on it
             states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
@@ -117,7 +119,6 @@ class QLearningAgent(Agent):
             q_vals = model.predict(numpify(state))
             best_move, _ = self.best_move_val(q_vals, legal_moves)
 
-            self.prev_move = best_move
             self.prev_state = state
 
     def best_move_val(self, q_vals, legal_moves):
@@ -172,12 +173,14 @@ class QLearningAgent(Agent):
             info('model saved to {}'.format(MODEL_FILENAME))
 
     def save_weights(self, suffix):
-        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color], suffix, '.h5')
+        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
+                                     self.color], suffix, '.h5')
         print('saving weights to {}'.format(filename))
         self.model.save_weights(filename, overwrite=True)
 
     def load_weights(self, suffix):
-        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color], suffix, '.h5')
+        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
+                                     self.color], suffix, '.h5')
         print('loading weights from {}'.format(filename))
         try:
             self.model.load_weights(filename)

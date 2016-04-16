@@ -3,14 +3,14 @@ from agents import Agent
 from keras.layers import Dense, Activation
 from keras.models import Sequential, model_from_json
 from keras.optimizers import RMSprop, SGD
-from util import info, opponent, color_name, to_offset, numpify
+from util import info, opponent, color_name, to_offset, numpify, best_move_val
 from agents.experience_replay import ExperienceReplay
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
-HIDDEN_SIZE = 128
+HIDDEN_SIZE = 44
 ALPHA = 0.01
-BATCH_SIZE = 16
+BATCH_SIZE = 20
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -24,17 +24,17 @@ class QLearningAgent(Agent):
         self.reversi = reversi
         self.learning_enabled = kwargs.get('learning_enabled', False)
         self.model = self.get_model(kwargs.get('model_file', None))
+        self.memory = kwargs.get('memory', None)
 
         weights_num = kwargs.get('weights_num', '')
         self.load_weights(weights_num)
 
         # training values
-        self.prev_move = None
-        self.prev_state = None
         self.epsilon = 0.0
-        self.MEM_LEN = 1
-        print('creating default ExperienceReplay with len 256')
-        self.memory = ExperienceReplay(256)
+        if self.learning_enabled:
+            self.prev_move = None
+            self.prev_state = None
+            self.MEM_LEN = 1
 
         if kwargs.get('model_file', None) is None:
             # if user didn't specify a model file, save the one we generated
@@ -84,18 +84,19 @@ class QLearningAgent(Agent):
         if not legal_moves:
             return None
 
-        best_move, _ = self.best_move_val(
+        best_move, _ = best_move_val(
             self.model.predict(numpify(state)),
             legal_moves
         )
         return best_move
 
     def train(self, state, legal_moves, winner=False):
+        assert self.memory is not None, "can't train without setting memory first"
         model = self.model
         if self.prev_state is None:
             # on first move, no training to do yet
             q_vals = model.predict(numpify(state))
-            best_move, _ = self.best_move_val(q_vals, legal_moves)
+            best_move, _ = best_move_val(q_vals, legal_moves)
 
             self.prev_state = state
         else:
@@ -116,29 +117,9 @@ class QLearningAgent(Agent):
             model.train_on_batch(states, targets)
 
             q_vals = model.predict(numpify(state))
-            best_move, _ = self.best_move_val(q_vals, legal_moves)
+            best_move, _ = best_move_val(q_vals, legal_moves)
 
             self.prev_state = state
-
-    def best_move_val(self, q_vals, legal_moves):
-        """Given a list of moves and a q_val array, return the move with the highest q_val and the q_val."""
-        if not legal_moves:
-            return None, None
-        else:
-            best_q = None
-            best_move = None
-            size = self.reversi.size
-            for move in legal_moves:
-                offset = to_offset(move, size)
-                val = q_vals[0][offset]
-                info('{}: {}'.format(move, val))
-                if best_q is None or val > best_q:
-                    best_q = val
-                    best_move = [move]
-                elif best_q == val:
-                    best_move.append(move)
-
-            return random.choice(best_move), best_q
 
     def get_model(self, filename=None):
         """Given a filename, load that model file; otherwise, generate a new model."""
@@ -155,10 +136,9 @@ class QLearningAgent(Agent):
             print('no model file loaded, generating new model.')
             size = self.reversi.size ** 2
             model = Sequential()
-            model.add(Dense(HIDDEN_SIZE, init='zero', input_shape=(size,)))
-            model.add(Activation('relu'))
-            model.add(Dense(size, init='zero'))
-            model.add(Activation('linear'))
+            model.add(Dense(HIDDEN_SIZE, activation='relu', input_dim=size))
+            # model.add(Dense(HIDDEN_SIZE, activation='relu'))
+            model.add(Dense(size))
 
         model.compile(loss='mse', optimizer=optimizer)
         return model

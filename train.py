@@ -8,22 +8,22 @@ from agents import ExperienceReplay
 
 import sys
 
-SNAPSHOT_AMNT = 1000  # this frequently, save a snapshot of the states
+SNAPSHOT_AMNT = 100  # this frequently, save a snapshot of the states
 STOP_EXPLORING = 0.5  # after how many games do we set epsilon to 0?
 
 
 def main():
-    amount = 4
+    amount = 40000
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         amount = int(sys.argv[1])
 
-    reversi = Reversi(size=8, WhiteAgent=QLearningAgent,
-                      BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
+    memory = ExperienceReplay(1)
+    reversi = Reversi(size=6, WhiteAgent=QLearningAgent,
+                      BlackAgent=QLearningAgent, silent=True, learning_enabled=True, memory=memory, model_file='neural/q_model', model_weights='neural/q_weights')
     epsilon = 1.0
     end_exploration = max(1, floor(amount * STOP_EXPLORING))
     print('exploration will halt at {} games.'.format(end_exploration))
 
-    memory = ExperienceReplay(1)
     start = time.time()
     try:
         for i in range(1, amount + 1):
@@ -31,8 +31,9 @@ def main():
             print('\tsetting epsilon to {:.2f}'.format(epsilon))
             reversi.white_agent.set_epsilon(epsilon)
             reversi.black_agent.set_epsilon(epsilon)
-            print('\tsetting memory to {}'.format(i))
-            memory.set_replay_len(i)  # at game i, memory is i moves long
+            mem_len = min(i, 2000)
+            print('\tsetting memory size to {}'.format(mem_len))
+            memory.set_replay_len(mem_len)  # at game i, memory is i moves long
             reversi.black_agent.set_memory(memory)
             reversi.white_agent.set_memory(memory)
             reversi.play_game()
@@ -42,7 +43,6 @@ def main():
                 reversi.white_agent.save_weights('_' + str(amnt))
                 reversi.black_agent.save_weights('_' + str(amnt))
 
-            # epsilon begins at 1, reaches 0 at 80% game completion
             epsilon -= (1 / end_exploration)
             epsilon = max(epsilon, 0.01)
     except KeyboardInterrupt:

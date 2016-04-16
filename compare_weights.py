@@ -3,7 +3,7 @@ from sys import argv
 import run_game
 from prop_parse import prop_parse
 
-AMOUNT = 25
+AMOUNT = 250
 
 
 def main():
@@ -20,7 +20,7 @@ def main():
         summary.append(result)
 
     for index, result in enumerate(summary):
-        print('weight {} black won {:.2f}%'.format(index, result['Black']))
+        print('{:.2f}% - weight {}'.format(result['Black'], index))
 
 
 if __name__ == '__main__':

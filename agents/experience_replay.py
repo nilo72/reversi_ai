@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from util import to_offset, numpify
+from util import to_offset, numpify, best_move_val
 import math
 
 # MAX_MEM_LEN = 1000  # no matter what, do not allow memory past this amount
@@ -36,7 +36,7 @@ class ExperienceReplay:
 
         # now format for training
         board_size = model.input_shape[1]
-        inputs = np.empty((batch_size, board_size))
+        inputs = np.empty((batch_size, board_size), dtype=np.int8)
         targets = np.empty((batch_size, board_size))
         for index, replay in enumerate(replays):
             if replay[win] is False and not replay[l]:
@@ -47,9 +47,9 @@ class ExperienceReplay:
             prev_qvals = model.predict(state)
 
             q_prime = None
-            if win is False:
+            if replay[win] is False:
                 next_qvals = model.predict(state_prime)
-                _, best_q = self.best_move_val(next_qvals, replay[l])
+                _, best_q = best_move_val(next_qvals, replay[l])
                 q_prime = (1 - ALPHA) * \
                     prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
             else:

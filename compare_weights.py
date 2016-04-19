@@ -3,7 +3,7 @@ from sys import argv
 import run_game
 from prop_parse import prop_parse
 
-AMOUNT = 250
+AMOUNT = 500
 
 
 def main():

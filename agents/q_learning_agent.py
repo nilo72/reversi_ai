@@ -8,7 +8,7 @@ from agents.experience_replay import ExperienceReplay
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
-HIDDEN_SIZE = 44
+HIDDEN_SIZE = 128
 ALPHA = 0.01
 BATCH_SIZE = 20
 
@@ -24,7 +24,6 @@ class QLearningAgent(Agent):
         self.reversi = reversi
         self.learning_enabled = kwargs.get('learning_enabled', False)
         self.model = self.get_model(kwargs.get('model_file', None))
-        self.memory = kwargs.get('memory', None)
 
         weights_num = kwargs.get('weights_num', '')
         self.load_weights(weights_num)
@@ -32,6 +31,7 @@ class QLearningAgent(Agent):
         # training values
         self.epsilon = 0.0
         if self.learning_enabled:
+            self.memory = None
             self.prev_move = None
             self.prev_state = None
             self.MEM_LEN = 1

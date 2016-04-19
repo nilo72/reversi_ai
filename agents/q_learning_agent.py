@@ -69,7 +69,7 @@ class QLearningAgent(Agent):
                 self.prev_move = move
             return move
 
-    def minimax(self, state, depth=2, alpha=-float('inf'), beta=float('inf')):
+    def minimax(self, state, depth=3, alpha=-float('inf'), beta=float('inf')):
         # pdb.set_trace()
         """Given a state, find its minimax value."""
         assert state[1] == self.color or state[1] == opponent[self.color]

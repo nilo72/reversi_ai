@@ -5,6 +5,7 @@ from keras.models import Sequential, model_from_json
 from keras.optimizers import RMSprop, SGD
 from util import info, opponent, color_name, to_offset, numpify, best_move_val
 from agents.experience_replay import ExperienceReplay
+import pdb
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
@@ -42,6 +43,9 @@ class QLearningAgent(Agent):
 
     def set_epsilon(self, val):
         self.epsilon = val
+        if not self.learning_enabled:
+            info('Warning -- set_epsilon() was called when learning was not enabled.')
+
 
     def set_memory(self, memory):
         self.memory = memory
@@ -65,6 +69,46 @@ class QLearningAgent(Agent):
                 self.prev_move = move
             return move
 
+    def minimax(self, state, depth=2, alpha=-float('inf'), beta=float('inf')):
+        # pdb.set_trace()
+        """Given a state, find its minimax value."""
+        assert state[1] == self.color or state[1] == opponent[self.color]
+        player_turn = True if state[1] == self.color else False
+
+        legal = self.reversi.legal_moves(state)
+        winner = self.reversi.winner(state)
+        if not legal and winner is False:
+            # no legal moves, but game isn't over, so pass turn
+            return self.minimax(self.reversi.next_state(state, None))
+        elif depth == 0 or winner is not False:
+            if winner == self.color:
+                return 9999999
+            elif winner == opponent[self.color]:
+                return -9999999
+            else:
+                q_vals = self.model.predict(numpify(state))
+                best_move, best_q = best_move_val(q_vals, legal)
+                return best_q
+
+        if player_turn:
+            val = -float('inf')
+            for move in legal:
+                new_state = self.reversi.next_state(state, move)
+                val = max(val, self.minimax(new_state, depth - 1, alpha, beta))
+                alpha = max(alpha, val)
+                if beta <= alpha:
+                    break
+            return val
+        else:
+            val = float('inf')
+            for move in legal:
+                new_state = self.reversi.next_state(state, move)
+                val = min(val, self.minimax(new_state, depth - 1, alpha, beta))
+                beta = min(beta, val)
+                if beta <= alpha:
+                    break
+            return val
+
     def observe_win(self, state):
         """Called by the game at end of game to present the agent with the final board state."""
         if self.learning_enabled:
@@ -84,10 +128,21 @@ class QLearningAgent(Agent):
         if not legal_moves:
             return None
 
-        best_move, _ = best_move_val(
-            self.model.predict(numpify(state)),
-            legal_moves
-        )
+        next_states = {self.reversi.next_state(state, move): move for move in legal_moves}
+        move_scores = []
+        for s in next_states.keys():
+            score = self.minimax(s)
+            move_scores.append((score, s))
+            info('{}: {}'.format(next_states[s], score))
+
+        best_val = -float('inf')
+        best_move = None
+        for each in move_scores:
+            if each[0] > best_val:
+                best_val = each[0]
+                best_move = next_states[each[1]]
+
+        assert best_move is not None
         return best_move
 
     def train(self, state, legal_moves, winner=False):
@@ -110,7 +165,7 @@ class QLearningAgent(Agent):
                 raise ValueError
 
             self.memory.remember(self.prev_state, self.prev_move,
-                                 reward, state, legal_moves, winner)
+                    reward, state, legal_moves, winner)
 
             # get an experience from memory and train on it
             states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
@@ -153,13 +208,13 @@ class QLearningAgent(Agent):
 
     def save_weights(self, suffix):
         filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
-                                     self.color], suffix, '.h5')
+            self.color], suffix, '.h5')
         print('saving weights to {}'.format(filename))
         self.model.save_weights(filename, overwrite=True)
 
     def load_weights(self, suffix):
         filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
-                                     self.color], suffix, '.h5')
+            self.color], suffix, '.h5')
         print('loading weights from {}'.format(filename))
         try:
             self.model.load_weights(filename)

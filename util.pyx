@@ -55,7 +55,7 @@ def best_move_val(q_vals, legal_moves):
         for move in legal_moves:
             offset = to_offset(move, size)
             val = q_vals[0][offset]
-            info('{}: {}'.format(move, val))
+            # info('{}: {}'.format(move, val))
             if best_q is None or val > best_q:
                 best_q = val
                 best_move = [move]

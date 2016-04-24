@@ -9,13 +9,15 @@ import pdb
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
-HIDDEN_SIZE = 128
-ALPHA = 0.01
-BATCH_SIZE = 20
+HIDDEN_SIZE = 24
+ALPHA = 1.0
+BATCH_SIZE = 12
+START_LEARNING = 500 # after this many epochs, start fitting network
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
 optimizer = RMSprop()
+# optimizer = SGD(lr=0.01)
 
 
 class QLearningAgent(Agent):
@@ -25,6 +27,7 @@ class QLearningAgent(Agent):
         self.reversi = reversi
         self.learning_enabled = kwargs.get('learning_enabled', False)
         self.model = self.get_model(kwargs.get('model_file', None))
+        self.minimax_enabled = kwargs.get('minimax', False)
 
         weights_num = kwargs.get('weights_num', '')
         self.load_weights(weights_num)
@@ -32,10 +35,11 @@ class QLearningAgent(Agent):
         # training values
         self.epsilon = 0.0
         if self.learning_enabled:
+            self.epoch = 0
+            self.train_count = random.choice(range(BATCH_SIZE))
             self.memory = None
             self.prev_move = None
             self.prev_state = None
-            self.MEM_LEN = 1
 
         if kwargs.get('model_file', None) is None:
             # if user didn't specify a model file, save the one we generated
@@ -49,6 +53,9 @@ class QLearningAgent(Agent):
 
     def set_memory(self, memory):
         self.memory = memory
+
+    def set_epoch(self, epoch):
+        self.epoch = epoch
 
     def get_action(self, state, legal_moves=None):
         """Agent method, called by the game to pick a move."""
@@ -128,25 +135,34 @@ class QLearningAgent(Agent):
         if not legal_moves:
             return None
 
-        next_states = {self.reversi.next_state(state, move): move for move in legal_moves}
-        move_scores = []
-        for s in next_states.keys():
-            score = self.minimax(s)
-            move_scores.append((score, s))
-            info('{}: {}'.format(next_states[s], score))
+        if not self.minimax_enabled:
+            # don't use minimax if we're in learning mode
+            best_move, _ = best_move_val(
+                    self.model.predict(numpify(state)),
+                    legal_moves
+                    )
+            return best_move
+        else:
+            next_states = {self.reversi.next_state(state, move): move for move in legal_moves}
+            move_scores = []
+            for s in next_states.keys():
+                score = self.minimax(s)
+                move_scores.append((score, s))
+                info('{}: {}'.format(next_states[s], score))
 
-        best_val = -float('inf')
-        best_move = None
-        for each in move_scores:
-            if each[0] > best_val:
-                best_val = each[0]
-                best_move = next_states[each[1]]
+            best_val = -float('inf')
+            best_move = None
+            for each in move_scores:
+                if each[0] > best_val:
+                    best_val = each[0]
+                    best_move = next_states[each[1]]
 
-        assert best_move is not None
-        return best_move
+            assert best_move is not None
+            return best_move
 
     def train(self, state, legal_moves, winner=False):
         assert self.memory is not None, "can't train without setting memory first"
+        self.train_count += 1
         model = self.model
         if self.prev_state is None:
             # on first move, no training to do yet
@@ -168,8 +184,9 @@ class QLearningAgent(Agent):
                     reward, state, legal_moves, winner)
 
             # get an experience from memory and train on it
-            states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
-            model.train_on_batch(states, targets)
+            if self.epoch > START_LEARNING and (self.train_count % BATCH_SIZE == 0 or winner is not False):
+                states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
+                model.train_on_batch(states, targets)
 
             q_vals = model.predict(numpify(state))
             best_move, _ = best_move_val(q_vals, legal_moves)
@@ -204,7 +221,7 @@ class QLearningAgent(Agent):
         as_json = model.to_json()
         with open(MODEL_FILENAME, 'w') as f:
             f.write(as_json)
-            info('model saved to {}'.format(MODEL_FILENAME))
+            print('model saved to {}'.format(MODEL_FILENAME))
 
     def save_weights(self, suffix):
         filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
@@ -219,4 +236,4 @@ class QLearningAgent(Agent):
         try:
             self.model.load_weights(filename)
         except:
-            print('Couldn\'t load weights file {}! Will generate it.'.format(filename))
+            print('Couldn\'t load weights file {}!'.format(filename))

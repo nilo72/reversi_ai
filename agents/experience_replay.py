@@ -50,10 +50,12 @@ class ExperienceReplay:
             if replay[win] is False:
                 next_qvals = model.predict(state_prime)
                 _, best_q = best_move_val(next_qvals, replay[l])
-                q_prime = (1 - ALPHA) * \
-                    prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
+                # q_prime = (1 - ALPHA) * \
+                   #  prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
+                q_prime = replay[r] + best_q
             else:
-                q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * replay[r]
+                # q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * replay[r]
+                q_prime = replay[r]
             prev_qvals[0][move] = q_prime
             inputs[index] = state
             targets[index] = prev_qvals

@@ -10,6 +10,7 @@ BLACK_PIECE = 'X'
 class Board:
     def __init__(self, size_t size):
         self.size = size
+        print('board initialized with size {}'.format(self.size))
         assert size >= 4 and size % 2 == 0
         self.black_stones = 0
         self.white_stones = 0

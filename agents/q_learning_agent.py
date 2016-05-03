@@ -9,15 +9,15 @@ import pdb
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
-HIDDEN_SIZE = 24
+HIDDEN_SIZE = 42
 ALPHA = 1.0
-BATCH_SIZE = 12
-START_LEARNING = 500 # after this many epochs, start fitting network
+BATCH_SIZE = 64
+START_LEARNING = 64 # after this many epochs, start fitting network
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
 optimizer = RMSprop()
-# optimizer = SGD(lr=0.01)
+# optimizer = SGD(lr=0.01, momentum=0.0)
 
 
 class QLearningAgent(Agent):
@@ -76,7 +76,7 @@ class QLearningAgent(Agent):
                 self.prev_move = move
             return move
 
-    def minimax(self, state, depth=3, alpha=-float('inf'), beta=float('inf')):
+    def minimax(self, state, depth=2, alpha=-float('inf'), beta=float('inf')):
         # pdb.set_trace()
         """Given a state, find its minimax value."""
         assert state[1] == self.color or state[1] == opponent[self.color]
@@ -95,6 +95,7 @@ class QLearningAgent(Agent):
             else:
                 q_vals = self.model.predict(numpify(state))
                 best_move, best_q = best_move_val(q_vals, legal)
+                print('best_q: {}'.format(best_q))
                 return best_q
 
         if player_turn:
@@ -166,9 +167,6 @@ class QLearningAgent(Agent):
         model = self.model
         if self.prev_state is None:
             # on first move, no training to do yet
-            q_vals = model.predict(numpify(state))
-            best_move, _ = best_move_val(q_vals, legal_moves)
-
             self.prev_state = state
         else:
             # add new info to replay memory
@@ -184,12 +182,9 @@ class QLearningAgent(Agent):
                     reward, state, legal_moves, winner)
 
             # get an experience from memory and train on it
-            if self.epoch > START_LEARNING and (self.train_count % BATCH_SIZE == 0 or winner is not False):
+            if self.train_count % BATCH_SIZE == 0 or winner is not False:
                 states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
                 model.train_on_batch(states, targets)
-
-            q_vals = model.predict(numpify(state))
-            best_move, _ = best_move_val(q_vals, legal_moves)
 
             self.prev_state = state
 

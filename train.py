@@ -9,12 +9,12 @@ from agents import ExperienceReplay
 
 import sys
 
-SNAPSHOT_AMNT = 1000  # this frequently, save a snapshot of the states
-STOP_EXPLORING = 0.6  # after how many games do we set epsilon to 0?
+SNAPSHOT_AMNT = 2000  # this frequently, save a snapshot of the states
+STOP_EXPLORING = 0.3  # after how many games do we set epsilon to 0?
 TEST_GAMES = 1000
-DATA_FILE = 'results_train.txt'
+DATA_FILE = 'neural/results_train.txt'
 
-BOARD_SIZE = 6
+BOARD_SIZE = 8
 REPLAY_MEM = 2000
 MIN_EPSILON = 0.01
 
@@ -24,7 +24,7 @@ def main():
         amount = int(sys.argv[1])
 
     reversi = Reversi(size=BOARD_SIZE, WhiteAgent=QLearningAgent,
-            BlackAgent=QLearningAgent, silent=True, learning_enabled=True, model_file='neural/q_model')
+            BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
 
     black_mem = ExperienceReplay(REPLAY_MEM)
     white_mem = ExperienceReplay(REPLAY_MEM)
@@ -41,6 +41,8 @@ def main():
             print('playing game {}/{} ({:3.2f}%) epsilon: {:.2f}'.format(i, amount, i * 100 / amount, epsilon))
             reversi.white_agent.set_epsilon(epsilon)
             reversi.black_agent.set_epsilon(epsilon)
+            reversi.black_agent.memory.set_replay_len(min(i, REPLAY_MEM))
+            reversi.white_agent.memory.set_replay_len(min(i, REPLAY_MEM))
             reversi.white_agent.set_epoch(i)
             reversi.black_agent.set_epoch(i)
             reversi.play_game()

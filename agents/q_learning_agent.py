@@ -1,3 +1,4 @@
+"""This Q-Learning neural network agent is still a work in progress and is not complete yet."""
 import random
 from agents import Agent
 from keras.layers import Dense, Activation

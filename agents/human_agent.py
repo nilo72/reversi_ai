@@ -5,9 +5,18 @@ class HumanAgent(Agent):
     """This agent is controlled by a human, who inputs moves via stdin."""
 
     def __init__(self, reversi, color, **kwargs):
+        self.reversi = reversi
+        self.color = color
+
+    def reset(self):
         pass
 
-    def get_action(self, game_state, legal_moves):
+    def observe_win(self, winner):
+        pass
+
+    def get_action(self, game_state, legal):
+        if not legal:
+            return None
         choice = None
         while True:
             raw_choice = input('Enter a move x,y: ')
@@ -25,6 +34,10 @@ class HumanAgent(Agent):
                 print('couldn\'t determine x,y from your input.')
                 continue
             choice = (int(raw_choice[0]), int(raw_choice[2]))
-            break
+            if choice not in legal:
+                print('not a legal move. try again.')
+                continue
+            else:
+                break
 
         return choice

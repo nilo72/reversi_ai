@@ -14,11 +14,16 @@ class MonteCarloAgent(Agent):
     def __init__(self, reversi, color, **kwargs):
         self.color = color
         self.reversi = reversi
-        self.print_info = kwargs.get('print', False)
-        self.sim_time = kwargs.get('time', 5)
+        self.sim_time = kwargs.get('sim_time', 5)
 
         # map states to nodes for quick lookup
         self.state_node = {}
+
+    def reset(self):
+        pass
+
+    def observe_win(self, winner):
+        pass
 
     def get_action(self, game_state, legal_moves):
         """Interface from class Agent.  Given a game state
@@ -26,6 +31,8 @@ class MonteCarloAgent(Agent):
         This will be called by the Reversi game object. Does not mutate
         the game state argument."""
         # make a deep copy to keep the promise that we won't mutate
+        if not legal_moves:
+            return None
         game_state = copy.deepcopy(game_state)
         move = self.monte_carlo_search(game_state)
         return move
@@ -58,8 +65,8 @@ class MonteCarloAgent(Agent):
         for child in root.children:
             wins, plays = child.get_wins_plays()
             position = child.move
-            self.info('{}: ({}/{})'.format(position, wins, plays))
-        self.info('{} simulations performed.'.format(sim_count))
+            info('{}: ({}/{})'.format(position, wins, plays))
+        info('{} simulations performed.'.format(sim_count))
         return self.best_action(root)
 
     @staticmethod
@@ -104,17 +111,17 @@ class MonteCarloAgent(Agent):
         """Given a root node, determine which child to visit
         using Upper Confidence Bound."""
         cur_node = root
-        while True:
 
+        while True:
             legal_moves = self.reversi.legal_moves(cur_node.game_state)
             if not legal_moves:
-                if self.reversi.winner(cur_node.game_state):
+                if self.reversi.winner(cur_node.game_state) is not False:
                     # the game is won
                     return cur_node
                 else:
-                    # game not won, so turn passes to other player
-                    next_state = (cur_node.game_state[0],
-                                  opponent[cur_node.game_state[1]])
+                    # no moves, so turn passes to other player
+                    next_state = self.reversi.next_state(
+                        cur_node.game_state, None)
                     pass_node = Node(next_state)
                     cur_node.add_child(pass_node)
                     self.state_node[next_state] = pass_node
@@ -125,12 +132,16 @@ class MonteCarloAgent(Agent):
                 # children are not fully expanded, so expand one
                 unexpanded = [
                     move for move in legal_moves
-                    if not cur_node.visited_move(move)
+                    if move not in cur_node.moves_expanded
                 ]
+
+                # note to self: this tree of nodes includes nodes of both players, right?
+                # so are you always assuming the enemy makes bad moves when you .best_child()
+                # on one of their states?
 
                 assert len(unexpanded) > 0
                 move = random.choice(unexpanded)
-                state = self.reversi.next_state(cur_node.game_state, *move)
+                state = self.reversi.next_state(cur_node.game_state, move)
                 n = Node(state, move)
                 cur_node.add_child(n)
                 self.state_node[state] = n
@@ -142,12 +153,15 @@ class MonteCarloAgent(Agent):
 
         return cur_node
 
-    @staticmethod
-    def best_child(node):
+    def best_child(self, node):
+        enemy_turn = (node.game_state[1] != self.color)
         C = 1  # 'exploration' value
         values = {}
         for child in node.children:
             wins, plays = child.get_wins_plays()
+            if enemy_turn:
+                # the enemy will play against us, not for us
+                wins = plays - wins
             _, parent_plays = node.get_wins_plays()
             assert parent_plays > 0
             values[child] = (wins / plays) \
@@ -180,11 +194,7 @@ class MonteCarloAgent(Agent):
                 moves = self.reversi.legal_moves(state)
 
             picked = random.choice(moves)
-            state = self.reversi.apply_move(state, *picked)
-
-    def info(self, s):
-        if self.print_info:
-            print(s)
+            state = self.reversi.apply_move(state, picked)
 
 
 class Node:
@@ -204,9 +214,6 @@ class Node:
         self.children.append(node)
         self.moves_expanded.add(node.move)
         node.parent = self
-
-    def visited_move(self, move):
-        return move in self.moves_expanded
 
     def has_children(self):
         return len(self.children) > 0

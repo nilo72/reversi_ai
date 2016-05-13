@@ -1,27 +1,30 @@
+K = 0
+V = 1
 
 
 class CacheDict:
 
-    def __init__(self, max_len=50):
-        self.c_dict = {}
-        self.max_len = max_len
-        assert max_len > 0
+    def __init__(self):
+        self.c_list = []
+        self.flip = True
 
     def update(self, k, v):
-        if k in self.c_dict:
-            return
-        if len(self.c_dict) >= self.max_len:
-            self.c_dict = {}
-        self.c_dict[k] = v
-
-    def drop(self, k):
-        if k not in self.c_dict:
-            return
-
-        self.c_dict.pop(k)
+        if len(self.c_list) < 2:
+            self.c_list.append((k, v))
+        else:
+            if self.flip:
+                self.c_list[0] = (k, v)
+            else:
+                self.c_list[1] = (k, v)
+            self.flip = not self.flip
 
     def get(self, k):
-        if k in self.c_dict:
-            return self.c_dict[k]
+        size = len(self.c_list)
+        if size >= 1 and self.c_list[0][K] == k:
+            # if size >= 1 and np.array_equal(self.c_list[0][K], k):
+            return self.c_list[0][V]
+        elif size >= 2 and self.c_list[1][K] == k:
+            # elif size >= 2 and np.array_equal(self.c_list[1][K], k):
+            return self.c_list[1][V]
         else:
             return None

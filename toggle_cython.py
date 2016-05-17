@@ -58,7 +58,10 @@ to_unhide = []
 unchanged = []
 unknown = []
 if MODE == CY:
-    print('Will hide Python files, unhide Cython files.')
+    check = input('Switch from Python to Cython? Y/n: ')
+    if check.lower() != 'y':
+        print('Quitting.')
+        quit()
     # hide py, unhide so
     for f in so_files:
         py_ver = py_ext(f)
@@ -74,7 +77,10 @@ if MODE == CY:
         else:
             unchanged.append(s)
 elif MODE == PY:
-    print('Will hide Cython files, unhide Python files.')
+    check = input('Switch from Cython to Python? Y/n: ')
+    if check.lower() != 'y':
+        print('Quitting.')
+        quit()
     # unhide py, hide so
     for s in so_files:
         if os.path.isfile(s):

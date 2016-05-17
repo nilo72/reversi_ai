@@ -36,7 +36,7 @@ class ExperienceReplay:
 
         # now format for training
         board_size = model.input_shape[1]
-        inputs = np.empty((batch_size, board_size), dtype=np.int8)
+        inputs = np.empty((batch_size, board_size))
         targets = np.empty((batch_size, board_size))
         for index, replay in enumerate(replays):
             if replay[win] is False and not replay[l]:
@@ -51,7 +51,7 @@ class ExperienceReplay:
                 next_qvals = model.predict(state_prime)
                 _, best_q = best_move_val(next_qvals, replay[l])
                 # q_prime = (1 - ALPHA) * \
-                   #  prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
+                #  prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
                 q_prime = replay[r] + best_q
             else:
                 # q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * replay[r]

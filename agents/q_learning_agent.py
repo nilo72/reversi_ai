@@ -1,19 +1,17 @@
 """This Q-Learning neural network agent is still a work in progress and is not complete yet."""
 import random
 from agents import Agent
-from keras.layers import Dense, Activation
+from keras.layers import Dense
 from keras.models import Sequential, model_from_json
 from keras.optimizers import RMSprop, SGD
-from util import info, opponent, color_name, to_offset, numpify, best_move_val
-from agents.experience_replay import ExperienceReplay
-import pdb
+from util import info, opponent, color_name, numpify, best_move_val
 
 MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
 HIDDEN_SIZE = 42
 ALPHA = 1.0
-BATCH_SIZE = 64
-START_LEARNING = 64 # after this many epochs, start fitting network
+BATCH_SIZE = 256
+START_LEARNING = 64  # after this many epochs, start fitting network
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -50,7 +48,6 @@ class QLearningAgent(Agent):
         self.epsilon = val
         if not self.learning_enabled:
             info('Warning -- set_epsilon() was called when learning was not enabled.')
-
 
     def set_memory(self, memory):
         self.memory = memory
@@ -140,12 +137,13 @@ class QLearningAgent(Agent):
         if not self.minimax_enabled:
             # don't use minimax if we're in learning mode
             best_move, _ = best_move_val(
-                    self.model.predict(numpify(state)),
-                    legal_moves
-                    )
+                self.model.predict(numpify(state)),
+                legal_moves
+            )
             return best_move
         else:
-            next_states = {self.reversi.next_state(state, move): move for move in legal_moves}
+            next_states = {self.reversi.next_state(
+                state, move): move for move in legal_moves}
             move_scores = []
             for s in next_states.keys():
                 score = self.minimax(s)
@@ -180,11 +178,12 @@ class QLearningAgent(Agent):
                 raise ValueError
 
             self.memory.remember(self.prev_state, self.prev_move,
-                    reward, state, legal_moves, winner)
+                                 reward, state, legal_moves, winner)
 
             # get an experience from memory and train on it
             if self.train_count % BATCH_SIZE == 0 or winner is not False:
-                states, targets = self.memory.get_replay(model, BATCH_SIZE, ALPHA)
+                states, targets = self.memory.get_replay(
+                    model, BATCH_SIZE, ALPHA)
                 model.train_on_batch(states, targets)
 
             self.prev_state = state

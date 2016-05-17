@@ -38,12 +38,11 @@ def main(**kwargs):
 
     if any(val == monte_carlo_agent.MonteCarloAgent for val in input_args.values()) \
             and not input_args.get('sim_time', False):
-        print("Can't run monte carlo agent without passing in some value for sim_time.")
+        print('sim_time field required for monte_carlo agent.')
         print('quitting.')
         quit()
 
     amount = input_args.get('amount', 1)
-    bot_time = input_args.get('bot_time', 1)
     make_silent(input_args.get('silent', False))
 
     print('About to run {} games, black as {}, white as {}.'.format(

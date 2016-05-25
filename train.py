@@ -20,12 +20,13 @@ MIN_EPSILON = 0.01
 
 
 def main():
+    reset_output_file()
     amount = 40000
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         amount = int(sys.argv[1])
 
     reversi = Reversi(size=BOARD_SIZE, WhiteAgent=QLearningAgent,
-                      BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
+            BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
 
     black_mem = ExperienceReplay(REPLAY_MEM)
     white_mem = ExperienceReplay(REPLAY_MEM)
@@ -40,7 +41,7 @@ def main():
     try:
         for i in range(1, amount + 1):
             print('playing game {}/{} ({:3.2f}%) epsilon: {:.2f}'.format(i,
-                                                                         amount, i * 100 / amount, epsilon))
+                amount, i * 100 / amount, epsilon))
             reversi.white_agent.set_epsilon(epsilon)
             reversi.black_agent.set_epsilon(epsilon)
             reversi.black_agent.memory.set_replay_len(min(i, REPLAY_MEM))
@@ -66,12 +67,16 @@ def main():
     reversi.white_agent.save_weights('')
     reversi.black_agent.save_weights('')
 
+def reset_output_file():
+    with open(DATA_FILE, 'w') as f:
+        f.write('')
+
 
 def play_test_games(weight_num):
     print('playing test games...')
     wincount = 0
     testgame = Reversi(size=BOARD_SIZE, WhiteAgent=RandomAgent, BlackAgent=QLearningAgent, minimax=False, silent=True,
-                       model_file='neural/q_model', model_weights='neural/q_weights', weights_num='_' + str(weight_num))
+            model_file='neural/q_model', model_weights='neural/q_weights', weights_num='_' + str(weight_num))
     for i in range(TEST_GAMES):
         print('playing test game {}/{}'.format(i, TEST_GAMES))
         winner, _, _ = testgame.play_game()

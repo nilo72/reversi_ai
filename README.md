@@ -1,4 +1,4 @@
-# reversi-ai
+# reversi_ai
 An attempt to build multiple AI agents to play the game of reversi.
 
 The ultimate goal is to create an agent that combines reinforcement learning with Monte Carlo tree search.

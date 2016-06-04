@@ -10,8 +10,7 @@ MODEL_FILENAME = 'neural/q_model'
 WEIGHTS_FILENAME = 'neural/q_weights'
 HIDDEN_SIZE = 42
 ALPHA = 1.0
-BATCH_SIZE = 256
-START_LEARNING = 64  # after this many epochs, start fitting network
+BATCH_SIZE = 64
 
 WIN_REWARD = 1
 LOSE_REWARD = -1
@@ -72,6 +71,7 @@ class QLearningAgent(Agent):
             if self.learning_enabled:
                 self.train(state, legal_moves)
                 self.prev_move = move
+                self.prev_state = state
             return move
 
     def minimax(self, state, depth=2, alpha=-float('inf'), beta=float('inf')):
@@ -185,8 +185,6 @@ class QLearningAgent(Agent):
                 states, targets = self.memory.get_replay(
                     model, BATCH_SIZE, ALPHA)
                 model.train_on_batch(states, targets)
-
-            self.prev_state = state
 
     def get_model(self, filename=None):
         """Given a filename, load that model file; otherwise, generate a new model."""

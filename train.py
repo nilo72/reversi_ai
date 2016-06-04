@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import time
-from agents import QLearningAgent
+from agents.q_learning_agent import QLearningAgent
 from agents import RandomAgent
 from game.reversi import Reversi
 from math import floor

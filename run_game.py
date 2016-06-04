@@ -7,12 +7,12 @@ from util import *
 from prop_parse import prop_parse
 
 prop_names = {
-    # agent names. if user passes BlackAgent=human, becomes human_agent.Hu...
-    # 'q_learning': q_learning_agent.QLearningAgent,
-    'monte_carlo': monte_carlo_agent.MonteCarloAgent,
-    'random': random_agent.RandomAgent,
-    'human': human_agent.HumanAgent,
-}
+        # agent names. if user passes BlackAgent=human, becomes human_agent.Hu...
+        # 'q_learning': q_learning_agent.QLearningAgent,
+        'monte_carlo': monte_carlo_agent.MonteCarloAgent,
+        'random': random_agent.RandomAgent,
+        'human': human_agent.HumanAgent,
+        }
 
 
 def main(**kwargs):
@@ -25,7 +25,7 @@ def main(**kwargs):
         print('  BlackAgent=, WhiteAgent=,')
         print('    choices: q_learning, monte_carlo, random, human')
         print('optional inputs:')
-        print('  size=(board size), amount=(#games), silent=(True/False), sim_time(seconds for monte carlo sim)')
+        print('  size=(board size), amount=(#games), silent=(True/False), sim_time=(seconds for monte carlo sim)')
         quit()
 
     for k, v in input_args.items():
@@ -47,7 +47,7 @@ def main(**kwargs):
 
     print('About to run {} games, black as {}, white as {}.'.format(
         amount, input_args['BlackAgent'].__name__, input_args['WhiteAgent'].__name__)
-    )
+        )
 
     summary = []
     white_wins = 0
@@ -63,7 +63,7 @@ def main(**kwargs):
             black_wins += 1
         info('game {} complete.'.format(t))
         message = '{} wins! {}-{}'.format(
-            color_name[winner], white_score, black_score)
+                color_name[winner], white_score, black_score)
         info(message)
         summary.append(message)
 

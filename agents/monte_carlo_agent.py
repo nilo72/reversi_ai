@@ -120,8 +120,8 @@ class MonteCarloAgent(Agent):
                     return cur_node
                 else:
                     # no moves, so turn passes to other player
-                    next_state = self.reversi.next_state(
-                        cur_node.game_state, None)
+                    next_state = self.reversi.next_state(cur_node.game_state,
+                                                         None)
                     pass_node = Node(next_state)
                     cur_node.add_child(pass_node)
                     self.state_node[next_state] = pass_node
@@ -198,7 +198,6 @@ class MonteCarloAgent(Agent):
 
 
 class Node:
-
     def __init__(self, game_state, move=None):
         self.game_state = game_state
         self.plays = 0
@@ -225,7 +224,8 @@ class Node:
         return hash(self.game_state)
 
     def __repr__(self):
-        return 'move: {} wins: {} plays: {}'.format(self.move, self.wins, self.plays)
+        return 'move: {} wins: {} plays: {}'.format(self.move, self.wins,
+                                                    self.plays)
 
     def __eq__(self, other):
         if not isinstance(other, Node):

@@ -15,11 +15,11 @@ BATCH_SIZE = 64
 WIN_REWARD = 1
 LOSE_REWARD = -1
 optimizer = RMSprop()
+
 # optimizer = SGD(lr=0.01, momentum=0.0)
 
 
 class QLearningAgent(Agent):
-
     def __init__(self, reversi, color, **kwargs):
         self.color = color
         self.reversi = reversi
@@ -27,8 +27,10 @@ class QLearningAgent(Agent):
         self.model = self.get_model(kwargs.get('model_file', None))
         self.minimax_enabled = kwargs.get('minimax', False)
 
-        weights_num = kwargs.get('weights_num', '')
-        self.load_weights(weights_num)
+        cont = kwargs.get('cont', False)
+        if cont:
+            weights_num = kwargs.get('weights_num', '')
+            self.load_weights(weights_num)
 
         # training values
         self.epsilon = 0.0
@@ -46,7 +48,8 @@ class QLearningAgent(Agent):
     def set_epsilon(self, val):
         self.epsilon = val
         if not self.learning_enabled:
-            info('Warning -- set_epsilon() was called when learning was not enabled.')
+            info(
+                'Warning -- set_epsilon() was called when learning was not enabled.')
 
     def set_memory(self, memory):
         self.memory = memory
@@ -137,13 +140,11 @@ class QLearningAgent(Agent):
         if not self.minimax_enabled:
             # don't use minimax if we're in learning mode
             best_move, _ = best_move_val(
-                self.model.predict(numpify(state)),
-                legal_moves
-            )
+                self.model.predict(numpify(state)), legal_moves)
             return best_move
         else:
-            next_states = {self.reversi.next_state(
-                state, move): move for move in legal_moves}
+            next_states = {self.reversi.next_state(state, move): move
+                           for move in legal_moves}
             move_scores = []
             for s in next_states.keys():
                 score = self.minimax(s)
@@ -177,13 +178,13 @@ class QLearningAgent(Agent):
             elif winner is not False:
                 raise ValueError
 
-            self.memory.remember(self.prev_state, self.prev_move,
-                                 reward, state, legal_moves, winner)
+            self.memory.remember(self.prev_state, self.prev_move, reward,
+                                 state, legal_moves, winner)
 
             # get an experience from memory and train on it
             if self.train_count % BATCH_SIZE == 0 or winner is not False:
-                states, targets = self.memory.get_replay(
-                    model, BATCH_SIZE, ALPHA)
+                states, targets = self.memory.get_replay(model, BATCH_SIZE,
+                                                         ALPHA)
                 model.train_on_batch(states, targets)
 
     def get_model(self, filename=None):
@@ -199,7 +200,7 @@ class QLearningAgent(Agent):
             print('loaded model file {}'.format(filename))
         else:
             print('no model file loaded, generating new model.')
-            size = self.reversi.size ** 2
+            size = self.reversi.size**2
             model = Sequential()
             model.add(Dense(HIDDEN_SIZE, activation='relu', input_dim=size))
             # model.add(Dense(HIDDEN_SIZE, activation='relu'))
@@ -217,16 +218,13 @@ class QLearningAgent(Agent):
             print('model saved to {}'.format(MODEL_FILENAME))
 
     def save_weights(self, suffix):
-        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
-            self.color], suffix, '.h5')
+        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color],
+                                     suffix, '.h5')
         print('saving weights to {}'.format(filename))
         self.model.save_weights(filename, overwrite=True)
 
     def load_weights(self, suffix):
-        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[
-            self.color], suffix, '.h5')
+        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color],
+                                     suffix, '.h5')
         print('loading weights from {}'.format(filename))
-        try:
-            self.model.load_weights(filename)
-        except:
-            print('Couldn\'t load weights file {}!'.format(filename))
+        self.model.load_weights(filename)

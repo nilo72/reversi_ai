@@ -47,7 +47,7 @@ def double_expand(x):
     x = np.expand_dims(x, axis=0)
     return x
 
-def max_q_move(q_vals, legal_moves, size):
+def max_q_move(q_vals, legal_moves, size, show=False):
     """Given a list of moves and a q_val array, return the move with the highest q_val and the q_val."""
     if not legal_moves:
         return None, None
@@ -57,6 +57,8 @@ def max_q_move(q_vals, legal_moves, size):
         for move in legal_moves:
             offset = to_offset(move, size)
             val = q_vals[0][offset]
+            if show:
+                info('{}: {:.4f}'.format(move, val))
             # info('{}: {}'.format(move, val))
             if val > best_q:
                 best_q = val

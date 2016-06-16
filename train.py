@@ -43,9 +43,9 @@ def main():
             reversi.black_agent.decrement_epsilon(1.0 / end_exploration)
 
             if i % SNAPSHOT_AMNT == 0:
-                amnt = int(i / SNAPSHOT_AMNT)
-                reversi.white_agent.save_weights(str(amnt))
-                reversi.black_agent.save_weights(str(amnt))
+                amnt = str(int(i / SNAPSHOT_AMNT))
+                reversi.white_agent.save_weights(amnt)
+                reversi.black_agent.save_weights(amnt)
                 play_test_games()
 
     except KeyboardInterrupt:
@@ -54,8 +54,10 @@ def main():
     seconds = time.time() - start
     print('time: {:.2f} minutes. per game: {:.2f}ms.'.format(seconds / 60.0, (
         seconds / float(i)) * 1000.0))
-    reversi.white_agent.save_weights()
-    reversi.black_agent.save_weights()
+
+    amnt = str(int(amount + 1 / SNAPSHOT_AMNT))
+    reversi.white_agent.save_weights(amnt)
+    reversi.black_agent.save_weights(amnt)
 
 
 def reset_output_file():
@@ -71,8 +73,7 @@ def play_test_games():
                        BlackAgent=QLearningAgent,
                        minimax=False,
                        silent=True,
-                       model_file=MODEL,
-                       model_weights=weights_filename(BLACK), )
+                       model_file=MODEL, )
     for i in range(TEST_GAMES):
         print('playing test game {}/{}'.format(i, TEST_GAMES))
         winner, _, _ = testgame.play_game()

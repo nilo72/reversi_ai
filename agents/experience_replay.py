@@ -7,7 +7,7 @@ import math
 
 
 class ExperienceReplay:
-    def __init__(self, size=1000000):
+    def __init__(self, size=100000):
         self.memory = []
         self.MEM_LEN = size
 

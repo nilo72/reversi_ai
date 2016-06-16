@@ -8,8 +8,10 @@ from filenames import MODEL, weights_filename
 WIN_REWARD = 1
 LOSS_REWARD = -1
 
-MINIBATCH_SIZE = 32
+MINIBATCH_SIZE = 8
 MIN_EPSILON = 0.01
+
+REPLAY_MEM = 100000
 
 OPTIMIZER = 'rmsprop'
 
@@ -27,10 +29,10 @@ class QLearningAgent(Agent):
         self._turn_count = 1
 
         self._training_enabled = kwargs.get('training_enabled', False)
-        self._use_existing_weights = kwargs.get('use_existing_weights', False)
+        self._weights_num = kwargs.get('weights_num', '')
         if self._training_enabled:
             self._init_training()
-            self._replay_memory = ExperienceReplay()
+            self._replay_memory = ExperienceReplay(REPLAY_MEM)
             self._epsilon = 1.0  # if training, start epsilon at 1.0
 
         try:
@@ -39,8 +41,14 @@ class QLearningAgent(Agent):
             self._model = self._gen_model()
             self._save_model(self._model)
 
-        if self._use_existing_weights:
-            self._load_weights(self._model)
+        if self._weights_num != '':
+            try:
+                self.load_weights(self._weights_num)
+            except OSError:
+                print('ERROR: Could not load the weights file specified.')
+                quit()
+        else:
+            print('No weights file loaded.')
 
     def get_action(self, game_state, legal_moves):
         """Given the game state and the legal moves, return this agent's
@@ -53,7 +61,9 @@ class QLearningAgent(Agent):
             # take random action
             picked_move = random.choice(legal_moves)
         else:
-            picked_move, val = self._best_move_val(game_state, legal_moves)
+            picked_move, val = self._best_move_val(game_state,
+                                                   legal_moves,
+                                                   show=True)
 
         if self._training_enabled:
             self._train(game_state, legal_moves)
@@ -77,13 +87,16 @@ class QLearningAgent(Agent):
         self._prev_state = None
         self._prev_action = None
 
-    def _best_move_val(self, game_state, legal_moves):
+    def _best_move_val(self, game_state, legal_moves, show):
         """Given a game state and list of legal moves, return a tuple of
         (best_move, that_moves_qval).
         If no legal moves, returns (None, None)"""
         numpified = double_expand(numpify(game_state))
         q_vals = self._model.predict(numpified, batch_size=1)
-        return max_q_move(q_vals, legal_moves, self.reversi.get_board_size())
+        return max_q_move(q_vals,
+                          legal_moves,
+                          self.reversi.get_board_size(),
+                          show=show)
 
     def _train(self, state, legal_moves, winner=False):
         """Use q-learning to train the neural network."""
@@ -132,7 +145,7 @@ class QLearningAgent(Agent):
     def _gen_model(self):
         board_size = self.reversi.get_board_size()
         model = Sequential()
-        model.add(Convolution2D(nb_filter=16,
+        model.add(Convolution2D(nb_filter=8,
                                 nb_row=3,
                                 nb_col=3,
                                 border_mode='same',
@@ -144,15 +157,16 @@ class QLearningAgent(Agent):
                                 activation='relu'))
         model.add(Flatten())
         model.add(Dense(64, activation='relu'))
-        model.add(Dense(board_size**2, activation='linear'))
+        model.add(Dense(board_size**2, activation='softmax'))
         model.compile(optimizer=OPTIMIZER, loss='mse')
 
-        print('Generated model with input shape: {}'.format(model.input_shape))
+        print('Generated model with input shape: {}, output shape: {}'.format(
+            model.input_shape, model.output_shape))
         return model
 
-    def load_weights(self):
+    def load_weights(self, suffix=''):
         model = self._model
-        filename = weights_filename(self.color)
+        filename = weights_filename(self.color, suffix)
         model.load_weights(filename)
         print('Weights loaded from {}'.format(filename))
 

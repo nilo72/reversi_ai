@@ -6,7 +6,7 @@ plt.ion()
 mng = plt.get_current_fig_manager()
 
 while True:
-    raw = open('neural/results_train.txt', 'r')
+    raw = open('neural/results.txt', 'r')
     lines = raw.readlines()
 
     as_float = [float(line) for line in lines]

@@ -35,23 +35,25 @@ def numpify(state):
     assert len(board) > 0
     size = len(board) * len(board[0])
     result = np.array(board)
-    result = np.expand_dims(result, axis=0)
-    result = np.expand_dims(result, axis=0)
     return result
 
 cpdef bool is_in_bounds(int x, int y, int size):
     return 0 <= x < size and 0 <= y < size
 
-def max_q_move(q_vals, legal_moves):
+def double_expand(x):
+    """Given a numpy array, add two dimensions to the front.
+    Useful when the neural net requires 'extra' dimensions."""
+    x = np.expand_dims(x, axis=0)
+    x = np.expand_dims(x, axis=0)
+    return x
+
+def max_q_move(q_vals, legal_moves, size):
     """Given a list of moves and a q_val array, return the move with the highest q_val and the q_val."""
-    # TODO: make third param for size, so we dont recompute each time
     if not legal_moves:
         return None, None
     else:
         best_q = -float('inf')
         best_move = []
-        size = int(math.sqrt(len(q_vals[0])))
-        assert size ** 2 == len(q_vals[0])
         for move in legal_moves:
             offset = to_offset(move, size)
             val = q_vals[0][offset]

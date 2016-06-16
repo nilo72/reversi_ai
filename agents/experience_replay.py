@@ -1,6 +1,6 @@
 import numpy as np
 import random
-from util import to_offset, numpify, max_q_move
+from util import to_offset, numpify, max_q_move, double_expand
 import math
 
 # MAX_MEM_LEN = 1000  # no matter what, do not allow memory past this amount
@@ -33,30 +33,30 @@ class ExperienceReplay:
 
         # now format for training
         board_size = model.input_shape[-1]
-        inputs = np.empty((minibatch_size, board_size, board_size))
-        targets = np.empty((minibatch_size, board_size, board_size))
+        inputs = np.empty((minibatch_size, 1, board_size, board_size))
+        targets = np.empty((minibatch_size, board_size**2))
         for index, replay in enumerate(replays):
             experience = replay.get_all()
             if experience[win] is False and not experience[l]:
                 continue  # no legal moves, and not a win
-            move = int(to_offset(experience[a], math.sqrt(board_size)))
+            move = int(to_offset(experience[a], board_size))
             state = numpify(experience[s])
-            state_prime = numpify(experience[sp])
-            print('SP SHAPE::::: ' + str(state_prime.shape))
+
+            state_prime = double_expand(numpify(experience[sp]))
             prev_qvals = model.predict(state_prime)
 
             q_prime = None
             if experience[win] is False:
                 next_qvals = model.predict(state_prime)
-                _, best_q = max_q_move(next_qvals, experience[l])
+                _, best_q = max_q_move(next_qvals, experience[l], board_size)
                 # q_prime = (1 - ALPHA) * \
                 #  prev_qvals[0][move] + ALPHA * (experience[r] + best_q)
                 q_prime = experience[r] + best_q
             else:
                 # q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * experience[r]
                 q_prime = experience[r]
+                assert q_prime != 0  # reward for win should be nonzero
             prev_qvals[0][move] = q_prime
-            print(inputs.shape)
             inputs[index] = state
             targets[index] = prev_qvals  # was updated with new target
 

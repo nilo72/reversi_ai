@@ -18,5 +18,5 @@ class RandomAgent(Agent):
     def reset(self):
         pass
 
-    def observe_win(self, winner):
+    def observe_win(self, state, winner):
         pass

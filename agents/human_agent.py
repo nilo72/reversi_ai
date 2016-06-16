@@ -11,7 +11,7 @@ class HumanAgent(Agent):
     def reset(self):
         pass
 
-    def observe_win(self, winner):
+    def observe_win(self, state, winner):
         pass
 
     def get_action(self, game_state, legal):

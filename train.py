@@ -5,15 +5,14 @@ from agents import QLearningAgent
 from agents import RandomAgent
 from game.reversi import Reversi
 from util import *
-from filenames import DATA
+from filenames import DATA, MODEL, weights_filename
 import sys
 
-SNAPSHOT_AMNT = 2000  # this frequently, save a snapshot of the states
+SNAPSHOT_AMNT = 200  # this frequently, save a snapshot of the states
 STOP_EXPLORING = 0.3  # after how many games do we set epsilon to 0?
 TEST_GAMES = 1000
 
 BOARD_SIZE = 8
-REPLAY_MEM = 2000
 
 
 def main():
@@ -76,12 +75,12 @@ def play_test_games():
     for i in range(TEST_GAMES):
         print('playing test game {}/{}'.format(i, TEST_GAMES))
         winner, _, _ = testgame.play_game()
-        print('winner: {} black: {}'.format(winner, BLACK))
+        print('winner: {}'.format(color_name[winner]))
         if winner == BLACK:
             wincount += 1
 
     winrate = 100.0 * wincount / TEST_GAMES
-    result = '{}: {:.2f}%\n'.format(weight_num, winrate)
+    result = '{:.2f}%\n'.format(winrate)
     print('result: {}'.format(result))
     with open(DATA, 'a') as f:
         f.write(str(winrate) + '\n')

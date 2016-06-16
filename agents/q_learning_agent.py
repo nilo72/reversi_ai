@@ -1,6 +1,6 @@
 from agents import Agent, ExperienceReplay, Experience
 import random
-from util import numpify, max_q_move
+from util import numpify, max_q_move, double_expand
 from keras.layers import Dense, Convolution2D, Flatten
 from keras.models import Sequential, model_from_json
 from filenames import MODEL, weights_filename
@@ -15,7 +15,6 @@ OPTIMIZER = 'rmsprop'
 
 
 class QLearningAgent(Agent):
-    # TODO: update epsilon value
     def __init__(self, reversi, color, **kwargs):
         self.reversi = reversi
         self.color = color
@@ -25,7 +24,7 @@ class QLearningAgent(Agent):
         self._replay_memory = None
         self._prev_state = None
         self._prev_action = None
-        self._turn_count = 0
+        self._turn_count = 1
 
         self._training_enabled = kwargs.get('training_enabled', False)
         self._use_existing_weights = kwargs.get('use_existing_weights', False)
@@ -82,10 +81,11 @@ class QLearningAgent(Agent):
         """Given a game state and list of legal moves, return a tuple of
         (best_move, that_moves_qval).
         If no legal moves, returns (None, None)"""
-        q_vals = self._model.predict(numpify(game_state), batch_size=1)
-        return max_q_move(q_vals, legal_moves)
+        numpified = double_expand(numpify(game_state))
+        q_vals = self._model.predict(numpified, batch_size=1)
+        return max_q_move(q_vals, legal_moves, self.reversi.get_board_size())
 
-    def _train(self, state, legal_moves, winner=None):
+    def _train(self, state, legal_moves, winner=False):
         """Use q-learning to train the neural network."""
         if self._prev_state is None:
             # first move of the game, nothing to do
@@ -150,12 +150,14 @@ class QLearningAgent(Agent):
         print('Generated model with input shape: {}'.format(model.input_shape))
         return model
 
-    def load_weights(self, model):
+    def load_weights(self):
+        model = self._model
         filename = weights_filename(self.color)
         model.load_weights(filename)
         print('Weights loaded from {}'.format(filename))
 
-    def save_weights(self, model):
+    def save_weights(self):
+        model = self._model
         filename = weights_filename(self.color)
         model.save_weights(filename, overwrite=True)
         print('Weights saved to {}'.format(filename))

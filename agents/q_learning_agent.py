@@ -156,8 +156,8 @@ class QLearningAgent(Agent):
         model.load_weights(filename)
         print('Weights loaded from {}'.format(filename))
 
-    def save_weights(self):
+    def save_weights(self, suffix=''):
         model = self._model
-        filename = weights_filename(self.color)
+        filename = weights_filename(self.color, suffix)
         model.save_weights(filename, overwrite=True)
         print('Weights saved to {}'.format(filename))

@@ -5,5 +5,8 @@ WEIGHTS = DEFAULT_DIR + 'weights_file'
 DATA = DEFAULT_DIR + 'results.txt'
 
 
-def weights_filename(color):
-    return '{}_{}.hd5'.format(WEIGHTS, color_name[color])
+def weights_filename(color, suffix=''):
+    if suffix != '':
+        return '{}_{}_{}.hd5'.format(WEIGHTS, color_name[color], suffix)
+    else:
+        return '{}_{}.hd5'.format(WEIGHTS, color_name[color])

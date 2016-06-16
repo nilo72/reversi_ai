@@ -8,8 +8,8 @@ from util import *
 from filenames import DATA, MODEL, weights_filename
 import sys
 
-SNAPSHOT_AMNT = 200  # this frequently, save a snapshot of the states
-STOP_EXPLORING = 0.3  # after how many games do we set epsilon to 0?
+SNAPSHOT_AMNT = 2000  # this frequently, save a snapshot of the states
+STOP_EXPLORING = 0.5  # after how many games do we set epsilon to 0?
 TEST_GAMES = 1000
 
 BOARD_SIZE = 8
@@ -43,8 +43,9 @@ def main():
             reversi.black_agent.decrement_epsilon(1.0 / end_exploration)
 
             if i % SNAPSHOT_AMNT == 0:
-                reversi.white_agent.save_weights()
-                reversi.black_agent.save_weights()
+                amnt = int(i / SNAPSHOT_AMNT)
+                reversi.white_agent.save_weights(str(amnt))
+                reversi.black_agent.save_weights(str(amnt))
                 play_test_games()
 
     except KeyboardInterrupt:

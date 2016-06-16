@@ -1,66 +1,80 @@
 import numpy as np
 import random
-from util import to_offset, numpify, best_move_val
+from util import to_offset, numpify, max_q_move
 import math
 
 # MAX_MEM_LEN = 1000  # no matter what, do not allow memory past this amount
 
 
 class ExperienceReplay:
-
-    def __init__(self, size):
+    def __init__(self, size=1000000):
         self.memory = []
         self.MEM_LEN = size
 
-    def remember(self, S, a, r, Sp, l, win):
-        self.memory.append((S, a, r, Sp, l, win))
+    def remember(self, experience):
+        self.memory.append(experience)
         if len(self.memory) > self.MEM_LEN:
             self.memory.pop(0)
 
     def set_replay_len(self, val):
         if val == -1:
             self.MEM_LEN = float('inf')
-        elif val < 0:
-            print('invalid memory length: {}'.format(val))
-            quit()
         else:
+            assert val > 0
             self.MEM_LEN = val
 
-    def get_replay(self, model, batch_size, ALPHA):
-        # (S, a, r, Sp, legal, win) tuple
-        S, a, r, Sp, l, win = range(6)  # indices
+    def get_replay(self, model, minibatch_size):
+        # (s, a, r, sp, legal, win) tuple
+        s, a, r, sp, l, win = range(6)  # indices
 
-        if batch_size > len(self.memory):
-            batch_size = len(self.memory)
-        replays = random.sample(self.memory, batch_size)
+        if minibatch_size > len(self.memory):
+            minibatch_size = len(self.memory)
+        replays = random.sample(self.memory, minibatch_size)
 
         # now format for training
-        board_size = model.input_shape[1]
-        inputs = np.empty((batch_size, board_size))
-        targets = np.empty((batch_size, board_size))
+        board_size = model.input_shape[-1]
+        inputs = np.empty((minibatch_size, board_size, board_size))
+        targets = np.empty((minibatch_size, board_size, board_size))
         for index, replay in enumerate(replays):
-            if replay[win] is False and not replay[l]:
+            experience = replay.get_all()
+            if experience[win] is False and not experience[l]:
                 continue  # no legal moves, and not a win
-            move = int(to_offset(replay[a], math.sqrt(board_size)))
-            state = numpify(replay[S])
-            state_prime = numpify(replay[Sp])
-            prev_qvals = model.predict(state)
+            move = int(to_offset(experience[a], math.sqrt(board_size)))
+            state = numpify(experience[s])
+            state_prime = numpify(experience[sp])
+            print('SP SHAPE::::: ' + str(state_prime.shape))
+            prev_qvals = model.predict(state_prime)
 
             q_prime = None
-            if replay[win] is False:
+            if experience[win] is False:
                 next_qvals = model.predict(state_prime)
-                _, best_q = best_move_val(next_qvals, replay[l])
+                _, best_q = max_q_move(next_qvals, experience[l])
                 # q_prime = (1 - ALPHA) * \
-                #  prev_qvals[0][move] + ALPHA * (replay[r] + best_q)
-                q_prime = replay[r] + best_q
+                #  prev_qvals[0][move] + ALPHA * (experience[r] + best_q)
+                q_prime = experience[r] + best_q
             else:
-                # q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * replay[r]
-                q_prime = replay[r]
+                # q_prime = (1 - ALPHA) * prev_qvals[0][move] + ALPHA * experience[r]
+                q_prime = experience[r]
             prev_qvals[0][move] = q_prime
+            print(inputs.shape)
             inputs[index] = state
-            targets[index] = prev_qvals
+            targets[index] = prev_qvals  # was updated with new target
 
         return inputs, targets
 
     def __len__(self):
         return len(self.memory)
+
+
+class Experience:
+    def __init__(self, s, a, sp, r, l, win):
+        self.s = s
+        self.a = a
+        self.sp = sp
+        self.r = r
+        self.l = l
+        self.win = win
+
+    def get_all(self):
+        """Return the (s, a, r, sp, l, win) tuple of this experience."""
+        return self.s, self.a, self.r, self.sp, self.l, self.win

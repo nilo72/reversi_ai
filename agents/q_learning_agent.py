@@ -1,230 +1,161 @@
-"""This Q-Learning neural network agent is still a work in progress and is not complete yet."""
+from agents import Agent, ExperienceReplay, Experience
 import random
-from agents import Agent
-from keras.layers import Dense
+from util import numpify, max_q_move
+from keras.layers import Dense, Convolution2D, Flatten
 from keras.models import Sequential, model_from_json
-from keras.optimizers import RMSprop, SGD
-from util import info, opponent, color_name, numpify, best_move_val
-
-MODEL_FILENAME = 'neural/q_model'
-WEIGHTS_FILENAME = 'neural/q_weights'
-HIDDEN_SIZE = 42
-ALPHA = 1.0
-BATCH_SIZE = 64
+from filenames import MODEL, weights_filename
 
 WIN_REWARD = 1
-LOSE_REWARD = -1
-optimizer = RMSprop()
+LOSS_REWARD = -1
 
-# optimizer = SGD(lr=0.01, momentum=0.0)
+MINIBATCH_SIZE = 32
+MIN_EPSILON = 0.01
+
+OPTIMIZER = 'rmsprop'
 
 
 class QLearningAgent(Agent):
+    # TODO: update epsilon value
     def __init__(self, reversi, color, **kwargs):
-        self.color = color
         self.reversi = reversi
-        self.learning_enabled = kwargs.get('learning_enabled', False)
-        self.model = self.get_model(kwargs.get('model_file', None))
-        self.minimax_enabled = kwargs.get('minimax', False)
-
-        cont = kwargs.get('cont', False)
-        if cont:
-            weights_num = kwargs.get('weights_num', '')
-            self.load_weights(weights_num)
+        self.color = color
 
         # training values
-        self.epsilon = 0.0
-        if self.learning_enabled:
-            self.epoch = 0
-            self.train_count = random.choice(range(BATCH_SIZE))
-            self.memory = None
-            self.prev_move = None
-            self.prev_state = None
+        self._epsilon = 0.0
+        self._replay_memory = None
+        self._prev_state = None
+        self._prev_action = None
+        self._turn_count = 0
 
-        if kwargs.get('model_file', None) is None:
-            # if user didn't specify a model file, save the one we generated
-            self.save_model(self.model)
+        self._training_enabled = kwargs.get('training_enabled', False)
+        self._use_existing_weights = kwargs.get('use_existing_weights', False)
+        if self._training_enabled:
+            self._init_training()
+            self._replay_memory = ExperienceReplay()
+            self._epsilon = 1.0  # if training, start epsilon at 1.0
 
-    def set_epsilon(self, val):
-        self.epsilon = val
-        if not self.learning_enabled:
-            info(
-                'Warning -- set_epsilon() was called when learning was not enabled.')
+        try:
+            self._model = self._load_model()
+        except FileNotFoundError:
+            self._model = self._gen_model()
+            self._save_model(self._model)
 
-    def set_memory(self, memory):
-        self.memory = memory
+        if self._use_existing_weights:
+            self._load_weights(self._model)
 
-    def set_epoch(self, epoch):
-        self.epoch = epoch
-
-    def get_action(self, state, legal_moves=None):
-        """Agent method, called by the game to pick a move."""
-        if legal_moves is None:
-            legal_moves = self.reversi.legal_moves(state)
-
+    def get_action(self, game_state, legal_moves):
+        """Given the game state and the legal moves, return this agent's
+        choice of move (None if no legal moves)."""
         if not legal_moves:
-            # no actions available
             return None
+
+        picked_move = None
+        if self._epsilon > random.random():
+            # take random action
+            picked_move = random.choice(legal_moves)
         else:
-            move = None
-            if self.epsilon > random.random():
-                move = random.choice(legal_moves)
-            else:
-                move = self.policy(state, legal_moves)
-            if self.learning_enabled:
-                self.train(state, legal_moves)
-                self.prev_move = move
-                self.prev_state = state
-            return move
+            picked_move, val = self._best_move_val(game_state, legal_moves)
 
-    def minimax(self, state, depth=2, alpha=-float('inf'), beta=float('inf')):
-        # pdb.set_trace()
-        """Given a state, find its minimax value."""
-        assert state[1] == self.color or state[1] == opponent[self.color]
-        player_turn = True if state[1] == self.color else False
+        if self._training_enabled:
+            self._train(game_state, legal_moves)
+            self._prev_state = game_state
+            self._prev_action = picked_move
 
-        legal = self.reversi.legal_moves(state)
-        winner = self.reversi.winner(state)
-        if not legal and winner is False:
-            # no legal moves, but game isn't over, so pass turn
-            return self.minimax(self.reversi.next_state(state, None))
-        elif depth == 0 or winner is not False:
-            if winner == self.color:
-                return 9999999
-            elif winner == opponent[self.color]:
-                return -9999999
-            else:
-                q_vals = self.model.predict(numpify(state))
-                best_move, best_q = best_move_val(q_vals, legal)
-                print('best_q: {}'.format(best_q))
-                return best_q
+        return picked_move
 
-        if player_turn:
-            val = -float('inf')
-            for move in legal:
-                new_state = self.reversi.next_state(state, move)
-                val = max(val, self.minimax(new_state, depth - 1, alpha, beta))
-                alpha = max(alpha, val)
-                if beta <= alpha:
-                    break
-            return val
-        else:
-            val = float('inf')
-            for move in legal:
-                new_state = self.reversi.next_state(state, move)
-                val = min(val, self.minimax(new_state, depth - 1, alpha, beta))
-                beta = min(beta, val)
-                if beta <= alpha:
-                    break
-            return val
-
-    def observe_win(self, state):
-        """Called by the game at end of game to present the agent with the final board state."""
-        if self.learning_enabled:
-            winner = self.reversi.winner(state)
-            self.train(state, [], winner)
+    def observe_win(self, state, winner):
+        """Called by the game runner when the game is over to present the
+        players with the final game state."""
+        self._train(state, legal_moves=[], winner=winner)
 
     def reset(self):
-        """Resets the agent to prepare it to play another game."""
-        self.reset_learning()
+        """Reset the agent so that it is in the proper state to play
+        a game from scratch."""
+        self._init_training()
 
-    def reset_learning(self):
-        self.prev_move = None
-        self.prev_state = None
+    def _init_training(self):
+        """Initialize the training values to their defaults."""
+        self._prev_state = None
+        self._prev_action = None
 
-    def policy(self, state, legal_moves):
-        """The policy of picking an action based on their weights."""
-        if not legal_moves:
-            return None
+    def _best_move_val(self, game_state, legal_moves):
+        """Given a game state and list of legal moves, return a tuple of
+        (best_move, that_moves_qval).
+        If no legal moves, returns (None, None)"""
+        q_vals = self._model.predict(numpify(game_state), batch_size=1)
+        return max_q_move(q_vals, legal_moves)
 
-        if not self.minimax_enabled:
-            # don't use minimax if we're in learning mode
-            best_move, _ = best_move_val(
-                self.model.predict(numpify(state)), legal_moves)
-            return best_move
+    def _train(self, state, legal_moves, winner=None):
+        """Use q-learning to train the neural network."""
+        if self._prev_state is None:
+            # first move of the game, nothing to do
+            return
         else:
-            next_states = {self.reversi.next_state(state, move): move
-                           for move in legal_moves}
-            move_scores = []
-            for s in next_states.keys():
-                score = self.minimax(s)
-                move_scores.append((score, s))
-                info('{}: {}'.format(next_states[s], score))
-
-            best_val = -float('inf')
-            best_move = None
-            for each in move_scores:
-                if each[0] > best_val:
-                    best_val = each[0]
-                    best_move = next_states[each[1]]
-
-            assert best_move is not None
-            return best_move
-
-    def train(self, state, legal_moves, winner=False):
-        assert self.memory is not None, "can't train without setting memory first"
-        self.train_count += 1
-        model = self.model
-        if self.prev_state is None:
-            # on first move, no training to do yet
-            self.prev_state = state
-        else:
-            # add new info to replay memory
             reward = 0
             if winner == self.color:
                 reward = WIN_REWARD
-            elif winner == opponent[self.color]:
-                reward = LOSE_REWARD
             elif winner is not False:
-                raise ValueError
+                reward = LOSS_REWARD
 
-            self.memory.remember(self.prev_state, self.prev_move, reward,
-                                 state, legal_moves, winner)
+            # store experience in memory
+            self._replay_memory.remember(
+                Experience(self._prev_state, self._prev_action, state, reward,
+                           legal_moves, winner))
 
-            # get an experience from memory and train on it
-            if self.train_count % BATCH_SIZE == 0 or winner is not False:
-                states, targets = self.memory.get_replay(model, BATCH_SIZE,
-                                                         ALPHA)
-                model.train_on_batch(states, targets)
+            if self._turn_count % MINIBATCH_SIZE == 0:
+                # sample experiences from memory
+                prev_vals, targets = self._replay_memory.get_replay(
+                    self._model, MINIBATCH_SIZE)
+                self._model.train_on_batch(prev_vals, targets)
 
-    def get_model(self, filename=None):
-        """Given a filename, load that model file; otherwise, generate a new model."""
-        model = None
-        if filename:
-            info('attempting to load model {}'.format(filename))
-            try:
-                model = model_from_json(open(filename).read())
-            except FileNotFoundError:
-                print('could not load file {}'.format(filename))
-                quit()
-            print('loaded model file {}'.format(filename))
-        else:
-            print('no model file loaded, generating new model.')
-            size = self.reversi.size**2
-            model = Sequential()
-            model.add(Dense(HIDDEN_SIZE, activation='relu', input_dim=size))
-            # model.add(Dense(HIDDEN_SIZE, activation='relu'))
-            model.add(Dense(size))
+            self._turn_count += 1
 
-        model.compile(loss='mse', optimizer=optimizer)
+    def decrement_epsilon(self, amnt):
+        self._epsilon = max(self._epsilon - amnt, MIN_EPSILON)
+
+    def get_epsilon(self):
+        return self._epsilon
+
+    def _load_model(self):
+        json = open(MODEL, 'r').read()
+        model = model_from_json(json)
+        model.compile(optimizer=OPTIMIZER, loss='mse')
+        print('Loaded model: {}'.format(MODEL))
         return model
 
-    @staticmethod
-    def save_model(model):
-        """Given a model, save it to disk."""
-        as_json = model.to_json()
-        with open(MODEL_FILENAME, 'w') as f:
-            f.write(as_json)
-            print('model saved to {}'.format(MODEL_FILENAME))
+    def _save_model(self, model):
+        json = model.to_json()
+        with open(MODEL, 'w') as f:
+            f.write(json)
+            print('Model saved as {}'.format(MODEL))
 
-    def save_weights(self, suffix):
-        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color],
-                                     suffix, '.h5')
-        print('saving weights to {}'.format(filename))
-        self.model.save_weights(filename, overwrite=True)
+    def _gen_model(self):
+        board_size = self.reversi.get_board_size()
+        model = Sequential()
+        model.add(Convolution2D(nb_filter=16,
+                                nb_row=3,
+                                nb_col=3,
+                                border_mode='same',
+                                input_shape=(1, board_size, board_size)))
+        model.add(Convolution2D(nb_filter=8,
+                                nb_row=3,
+                                nb_col=3,
+                                border_mode='same',
+                                activation='relu'))
+        model.add(Flatten())
+        model.add(Dense(64, activation='relu'))
+        model.add(Dense(board_size**2, activation='linear'))
+        model.compile(optimizer=OPTIMIZER, loss='mse')
 
-    def load_weights(self, suffix):
-        filename = '{}{}{}{}'.format(WEIGHTS_FILENAME, color_name[self.color],
-                                     suffix, '.h5')
-        print('loading weights from {}'.format(filename))
-        self.model.load_weights(filename)
+        print('Generated model with input shape: {}'.format(model.input_shape))
+        return model
+
+    def load_weights(self, model):
+        filename = weights_filename(self.color)
+        model.load_weights(filename)
+        print('Weights loaded from {}'.format(filename))
+
+    def save_weights(self, model):
+        filename = weights_filename(self.color)
+        model.save_weights(filename, overwrite=True)
+        print('Weights saved to {}'.format(filename))

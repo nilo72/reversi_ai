@@ -26,6 +26,10 @@ class Reversi:
 
         self.reset()
 
+    def get_board_size(self):
+        """Return the size of the board. I.e., 8x8 board has size 8."""
+        return self.size
+
 
     def reset(self):
         """Reset the game to initial positions."""
@@ -40,7 +44,7 @@ class Reversi:
     def play_game(self):
         state = self.get_state()
         self.print_board(state)
-        info_newline()
+        info()
         while self.winner(state) is False:
             color = state[1]
             picked = self.agent_pick_move(state)
@@ -50,11 +54,10 @@ class Reversi:
                 info('{} had no moves and passed their turn.'.format(color_name[color]))
             else:
                 info('{} plays at {}'.format(color_name[color], str(picked)))
-            info_newline()
+            info()
 
-        self.white_agent.observe_win(state)
-        self.black_agent.observe_win(state)
-
+        self.white_agent.observe_win(state, self.winner(state))
+        self.black_agent.observe_win(state, self.winner(state))
         self.print_board(state)
 
 
@@ -62,7 +65,6 @@ class Reversi:
         black_count, white_count = state[0].get_stone_counts()
         winner = BLACK if black_count > white_count else WHITE
         info('{} wins.'.format(color_name[winner]))
-        self.reset()
         return winner, white_count, black_count
 
     @staticmethod

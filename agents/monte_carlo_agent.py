@@ -41,6 +41,8 @@ class MonteCarloAgent(Agent):
         """Given a game state, return the best action decided by
         using Monte Carlo Tree Search with an Upper Confidence Bound."""
 
+        results = {}  # map position to wins/plays for sorted info print
+
         # This isn't strictly necessary for Monte Carlo to work,
         # but if we've seen this state before we can get better results by
         # reusing existing information.
@@ -65,7 +67,10 @@ class MonteCarloAgent(Agent):
         for child in root.children:
             wins, plays = child.get_wins_plays()
             position = child.move
-            info('{}: ({}/{})'.format(position, wins, plays))
+            results[position] = (wins, plays)
+
+        for position in sorted(results, key=lambda x: results[x][1]):
+            info('{}: ({}/{})'.format(position, results[position][0], results[position][1] ))
         info('{} simulations performed.'.format(sim_count))
         return self.best_action(root)
 

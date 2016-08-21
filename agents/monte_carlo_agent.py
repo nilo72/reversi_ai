@@ -7,9 +7,6 @@ from util import *
 
 
 class MonteCarloAgent(Agent):
-    """An agent utilizing Monte Carlo Tree Search.  I based much of
-    this implementation off Jeff Bradberry's informative blog:
-    https://jeffbradberry.com/posts/2015/09/intro-to-monte-carlo-tree-search/"""
 
     def __init__(self, reversi, color, **kwargs):
         self.color = color
@@ -50,7 +47,14 @@ class MonteCarloAgent(Agent):
         if game_state in self.state_node:
             root = self.state_node[game_state]
         else:
-            root = Node(game_state)
+            amnt_children = len(self.reversi.legal_moves(game_state))
+            if self.reversi.winner(game_state) is False and amnt_children == 0:
+                # if the game isn't over but a player must pass his move,
+                # (i.e. no other moves are available) then this node will have
+                # one child, which is the 'passing move' Node where control changes over
+                # to the other player but the board doesn't change.
+                amnt_children = 1
+            root = Node(game_state, None, amnt_children)
 
         # even if this is a "recycled" node we've already used,
         # remove its parent as it is now considered our root level node
@@ -58,7 +62,7 @@ class MonteCarloAgent(Agent):
 
         sim_count = 0
         now = time.time()
-        while time.time() - now < self.sim_time:
+        while time.time() - now < self.sim_time and root.moves_unfinished > 0:
             picked_node = self.tree_policy(root)
             result = self.simulate(picked_node.game_state)
             self.back_prop(picked_node, result)
@@ -70,7 +74,7 @@ class MonteCarloAgent(Agent):
             results[position] = (wins, plays)
 
         for position in sorted(results, key=lambda x: results[x][1]):
-            info('{}: ({}/{})'.format(position, results[position][0], results[position][1] ))
+            info('{}: ({}/{})'.format(position, results[position][0], results[position][1]))
         info('{} simulations performed.'.format(sim_count))
         return self.best_action(root)
 
@@ -117,17 +121,18 @@ class MonteCarloAgent(Agent):
         using Upper Confidence Bound."""
         cur_node = root
 
-        while True:
+        while True and root.moves_unfinished > 0:
             legal_moves = self.reversi.legal_moves(cur_node.game_state)
             if not legal_moves:
                 if self.reversi.winner(cur_node.game_state) is not False:
                     # the game is won
+                    cur_node.propagate_completion()
                     return cur_node
                 else:
                     # no moves, so turn passes to other player
                     next_state = self.reversi.next_state(
                         cur_node.game_state, None)
-                    pass_node = Node(next_state)
+                    pass_node = Node(next_state, None, 1)
                     cur_node.add_child(pass_node)
                     self.state_node[next_state] = pass_node
                     cur_node = pass_node
@@ -140,17 +145,13 @@ class MonteCarloAgent(Agent):
                     if move not in cur_node.moves_expanded
                 ]
 
-                # note to self: this tree of nodes includes nodes of both players, right?
-                # so are you always assuming the enemy makes bad moves when you .best_child()
-                # on one of their states?
-
                 assert len(unexpanded) > 0
                 move = random.choice(unexpanded)
                 state = self.reversi.next_state(cur_node.game_state, move)
-                n = Node(state, move)
-                cur_node.add_child(n)
-                self.state_node[state] = n
-                return n
+                child = Node(state, move, len(legal_moves))
+                cur_node.add_child(child)
+                self.state_node[state] = child
+                return child
 
             else:
                 # Every possible next state has been expanded, so pick one
@@ -204,16 +205,31 @@ class MonteCarloAgent(Agent):
 
 class Node:
 
-    def __init__(self, game_state, move=None):
+    def __init__(self, game_state, move, amount_children):
         self.game_state = game_state
         self.plays = 0
         self.wins = 0
         self.children = []
         self.parent = None
-        self.moves_expanded = set()
+        self.moves_expanded = set()  # which moves have we tried at least once
+        self.moves_unfinished = amount_children  # amount of moves not fully expanded
 
         # the move that led to this child state
         self.move = move
+
+    def propagate_completion(self):
+        """
+        If all children of this move have each been expanded to
+        completion, tell the parent that it has one fewer children
+        left to expand.
+        """
+        if self.parent is None:
+            return
+
+        if self.moves_unfinished > 0:
+            self.moves_unfinished -= 1
+
+        self.parent.propagate_completion()
 
     def add_child(self, node):
         self.children.append(node)

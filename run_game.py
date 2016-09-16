@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from sys import argv
 import time
-from game.reversi import Reversi
-from agents import random_agent, monte_carlo_agent, human_agent
+from game import reversi_game, tictactoe_game
+from agents import random_agent, monte_carlo_agent, human_agent, my_agent
 from util import *
 from prop_parse import prop_parse
 
@@ -12,6 +12,9 @@ prop_names = {
         'monte_carlo': monte_carlo_agent.MonteCarloAgent,
         'random': random_agent.RandomAgent,
         'human': human_agent.HumanAgent,
+        'my': my_agent.MyAgent,
+        't3': tictactoe_game.TicTacToeGame,
+        'reversi': reversi_game.ReversiGame,
         }
 
 
@@ -22,13 +25,14 @@ def main(**kwargs):
 
     if len(argv) <= 1 and len(kwargs) <= 1:
         print('necessary inputs:')
-        print('  BlackAgent=, WhiteAgent=,')
-        print('    choices: q_learning, monte_carlo, random, human')
+        print('  BlackAgent=, WhiteAgent=, game=')
+        print('    choices for agents: q_learning, monte_carlo, random, human, choices for game: reversi, t3')
         print('optional inputs:')
         print('  size=(board size), amount=(#games), silent=(True/False), sim_time=(seconds for monte carlo sim)')
         quit()
 
     for k, v in input_args.items():
+        # print('K: {} - V: {}'.format(k,v))
         # convert 'human' to human_agent.HumanAgent, etc
         if v in prop_names:
             input_args[k] = prop_names[v]
@@ -45,18 +49,21 @@ def main(**kwargs):
     amount = input_args.get('amount', 1)
     make_silent(input_args.get('silent', False))
 
-    print('About to run {} games, black as {}, white as {}.'.format(
-        amount, input_args['BlackAgent'].__name__, input_args['WhiteAgent'].__name__)
+    print('About to run {} games of game {}, black as {}, white as {}.'.format(
+        amount, input_args['game'].__name__, input_args['BlackAgent'].__name__, input_args['WhiteAgent'].__name__)
         )
 
     summary = []
     white_wins = 0
     black_wins = 0
-    reversi = Reversi(**input_args)
+
+    Game = input_args['game']
+    game = Game(**input_args)
+
     start = time.time()
     for t in range(1, amount + 1):
         info('starting game {} of {}'.format(t, amount))
-        winner, white_score, black_score = reversi.play_game()
+        winner, white_score, black_score = game.play_game()
         if winner == WHITE:
             white_wins += 1
         elif winner == BLACK:
@@ -78,6 +85,8 @@ def main(**kwargs):
             100, 'White': white_wins / (black_wins + white_wins) * 100}
     print('Black won {}%'.format(wins['Black']))
     print('White won {}%'.format(wins['White']))
+    print(black_wins)
+    print(white_wins)
 
     return wins
 

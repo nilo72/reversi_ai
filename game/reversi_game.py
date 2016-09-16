@@ -1,22 +1,20 @@
-import random
+import game
 from copy import deepcopy
-import pdb
-from game.board import Board, BLACK, WHITE, EMPTY
-from agents.human_agent import HumanAgent
+from reversi_board import ReversiBoard, BLACK, WHITE, EMPTY
 from agents.random_agent import RandomAgent
 from util import *
 from cache_dict import CacheDict
+from game import Game
 
 
-class Reversi:
+
+class ReversiGame(Game):
     """This class enforces the rules of the game of Reversi."""
 
     def __init__(self, **kwargs):
         self.size = kwargs.get('size', 8)
-        self.board = Board(self.size)
+        self.board = ReversiBoard(self.size)
 
-        black_time = kwargs.get('black_time')
-        white_time = kwargs.get('white_time')
         WhiteAgent = kwargs.get('WhiteAgent', RandomAgent)
         BlackAgent = kwargs.get('BlackAgent', RandomAgent)
         self.white_agent = WhiteAgent(self, WHITE, **kwargs)
@@ -26,7 +24,6 @@ class Reversi:
 
         self.reset()
 
-
     def reset(self):
         """Reset the game to initial positions."""
         self.board.init_starting_position()
@@ -35,7 +32,6 @@ class Reversi:
 
         self.white_agent.reset()
         self.black_agent.reset()
-
 
     def play_game(self):
         state = self.get_state()
@@ -47,7 +43,8 @@ class Reversi:
             state = self.next_state(state, picked)
             self.print_board(state)
             if not picked:
-                info('{} had no moves and passed their turn.'.format(color_name[color]))
+                info('{} had no moves and passed their turn.'.format(
+                    color_name[color]))
             else:
                 info('{} plays at {}'.format(color_name[color], str(picked)))
             info_newline()
@@ -56,7 +53,6 @@ class Reversi:
         self.black_agent.observe_win(state)
 
         self.print_board(state)
-
 
         # figure out who won
         black_count, white_count = state[0].get_stone_counts()
@@ -105,11 +101,9 @@ class Reversi:
         if cached is not None:
             return cached
 
-        cdef size_t board_size
         board_size = board.get_size()
         moves = []  # list of x,y positions valid for color
 
-        cdef size_t y, x
         for y in range(board_size):
             for x in range(board_size):
                 if self.is_valid_move(game_state, x, y):
@@ -119,7 +113,7 @@ class Reversi:
         return moves
 
     @staticmethod
-    def is_valid_move(game_state, int x, int y):
+    def is_valid_move(game_state, x, y):
         board, color = game_state
         piece = board.board[y][x]
         if piece != EMPTY:
@@ -128,8 +122,6 @@ class Reversi:
         enemy = opponent[color]
 
         # now check in all directions, including diagonal
-        cdef int distance, yp, xp
-        cdef int dy, dx
         for dy in range(-1, 2):
             for dx in range(-1, 2):
                 if dy == 0 and dx == 0:
@@ -153,7 +145,7 @@ class Reversi:
     def next_state(self, game_state, move):
         """Given a game_state and a position for a new piece, return a new game_state
         reflecting the change.  Does not modify the input game_state."""
-        return  self.apply_move(deepcopy(game_state), move)
+        return self.apply_move(deepcopy(game_state), move)
 
     @staticmethod
     def apply_move(game_state, move):
@@ -165,7 +157,6 @@ class Reversi:
             game_state = (game_state[0], opponent[game_state[1]])
             return game_state
 
-        cdef int x, y
         x, y = move
         color = game_state[1]
         board = game_state[0]
@@ -177,8 +168,6 @@ class Reversi:
             enemy_color = WHITE
 
         # now check in all directions, including diagonal
-        cdef int dy, dx, yp, xp
-        cdef size_t distance
         to_flip = []
         for dy in range(-1, 2):
             for dx in range(-1, 2):
@@ -247,4 +236,3 @@ class Reversi:
     def get_state(self):
         """Returns a tuple representing the board state."""
         return self.game_state
-

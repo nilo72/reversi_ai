@@ -4,7 +4,7 @@ WHITE_PIECE = 'O'
 BLACK_PIECE = 'X'
 
 
-class Board:
+class ReversiBoard():
 
     def __init__(self, size):
         self.size = size

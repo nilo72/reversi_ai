@@ -2,7 +2,7 @@
 import time
 from agents.q_learning_agent import QLearningAgent
 from agents import RandomAgent
-from game.reversi import Reversi
+from game.reversi_game import ReversiGame
 from math import floor
 from util import *
 from agents import ExperienceReplay
@@ -25,8 +25,8 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         amount = int(sys.argv[1])
 
-    reversi = Reversi(size=BOARD_SIZE, WhiteAgent=QLearningAgent,
-            BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
+    reversi = ReversiGame(size=BOARD_SIZE, WhiteAgent=QLearningAgent,
+                          BlackAgent=QLearningAgent, silent=True, learning_enabled=True)
 
     black_mem = ExperienceReplay(REPLAY_MEM)
     white_mem = ExperienceReplay(REPLAY_MEM)
@@ -75,8 +75,8 @@ def reset_output_file():
 def play_test_games(weight_num):
     print('playing test games...')
     wincount = 0
-    testgame = Reversi(size=BOARD_SIZE, WhiteAgent=RandomAgent, BlackAgent=QLearningAgent, minimax=False, silent=True,
-            model_file='neural/q_model', model_weights='neural/q_weights', weights_num='_' + str(weight_num))
+    testgame = ReversiGame(size=BOARD_SIZE, WhiteAgent=RandomAgent, BlackAgent=QLearningAgent, minimax=False, silent=True,
+                           model_file='neural/q_model', model_weights='neural/q_weights', weights_num='_' + str(weight_num))
     for i in range(TEST_GAMES):
         print('playing test game {}/{}'.format(i, TEST_GAMES))
         winner, _, _ = testgame.play_game()

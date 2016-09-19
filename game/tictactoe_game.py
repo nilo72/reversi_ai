@@ -1,4 +1,5 @@
 from game import Game
+from copy import deepcopy
 from tictactoe_board import TicTacToeBoard
 from util import *
 from agents.random_agent import RandomAgent
@@ -28,8 +29,22 @@ class TicTacToeGame(Game):
         self.white_agent.reset()
         self.black_agent.reset()
 
-    def place_stone_at(self, color, x, y):
-        self.board[y][x] = color
+    @staticmethod
+    def apply_move(game_state, move):
+        """Given a game_state (which includes info about whose turn it is) and an x,y
+        position to place a piece, transform it into the game_state that follows this play."""
+
+        # if move is None, then the player simply passed their turn
+        if not move:
+            game_state = (game_state[0], opponent[game_state[1]])
+            return game_state
+
+        x, y = move
+        color = game_state[1]
+        board = game_state[0]
+        board.place_stone_at(color, x, y)
+        game_state = (game_state[0], opponent[game_state[1]])
+        return game_state
 
     def play_game(self):
         state = self.get_state()
@@ -55,26 +70,6 @@ class TicTacToeGame(Game):
         return winner, white_count, black_count
 
     def winner(self, game_state):
-        """Determine the game winner."""
-        WAYS_TO_WIN = ((0, 1, 2),
-                       (3, 4, 5),
-                       (6, 7, 8),
-                       (0, 3, 6),
-                       (1, 4, 7),
-                       (2, 5, 8),
-                       (0, 4, 8),
-                       (2, 4, 6))
-        print(game_state[0].__str__())
-        board = game_state[0]
-        for x in xrange(0,board.get_size()):
-            for y in xrange(0,board.get_size()):
-                if board[x][y] == board[x][y] == board[x][y] != EMPTY:
-                    winner = board[x][y]
-                    return winner
-
-#        if EMPTY not in game_state:
-#            return FALSE
-
         return False
 
     def legal_moves(self, game_state, force_cache=False):
@@ -107,7 +102,6 @@ class TicTacToeGame(Game):
     def is_valid_move(self, state, x, y):
         board, color = self.game_state
         piece = board.board[y][x]
-        print(piece)
         if piece != EMPTY:
             return False
         return True
@@ -120,6 +114,10 @@ class TicTacToeGame(Game):
     def get_state(self):
         """Returns a tuple representing the board state."""
         return self.game_state
+
+    def get_board(self):
+        """Return the board from the current game_state."""
+        return self.game_state[0]
 
     def agent_pick_move(self, state):
         color = state[1]
@@ -140,5 +138,7 @@ class TicTacToeGame(Game):
 
         return picked
 
-    def next_state(self, state, picked):
-        pass
+    def next_state(self, state, move):
+        """Given a game_state and a position for a new piece, return a new game_state
+                reflecting the change.  Does not modify the input game_state."""
+        return self.apply_move(deepcopy(state), move)

@@ -44,3 +44,14 @@ class TicTacToeBoard(object):
 
     def get_size(self):
         return self.size
+
+    def place_stone_at(self, color, x, y):
+        self.board[y][x] = color
+        if color == WHITE:
+            self.white_stones += 1
+        elif color == BLACK:
+            self.black_stones += 1
+
+    def get_board(self):
+        """Return the raw board.  Try to avoid this if you can use the other getters."""
+        return self.board

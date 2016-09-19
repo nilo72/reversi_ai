@@ -2,7 +2,7 @@
 from sys import argv
 import time
 from game import reversi_game, tictactoe_game
-from agents import random_agent, monte_carlo_agent, human_agent, my_agent
+from agents import random_agent, monte_carlo_agent, monte_carlo2_agent, human_agent, my_agent
 from util import *
 from prop_parse import prop_parse
 
@@ -10,6 +10,7 @@ prop_names = {
         # agent names. if user passes BlackAgent=human, becomes human_agent.Hu...
         # 'q_learning': q_learning_agent.QLearningAgent,
         'monte_carlo': monte_carlo_agent.MonteCarloAgent,
+        'monte_carlo2': monte_carlo2_agent.MonteCarloAgent2,
         'random': random_agent.RandomAgent,
         'human': human_agent.HumanAgent,
         'my': my_agent.MyAgent,

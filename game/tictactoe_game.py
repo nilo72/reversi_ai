@@ -1,3 +1,4 @@
+import game
 from game import Game
 from copy import deepcopy
 from tictactoe_board import TicTacToeBoard
@@ -70,6 +71,26 @@ class TicTacToeGame(Game):
         return winner, white_count, black_count
 
     def winner(self, game_state):
+        t3_board,p = game_state
+        board = t3_board.board
+        n_rows = len(board)
+        lft = [[0] * i for i in range(n_rows)]  # [[], [0], [0, 0], [0, 0, 0]]
+        rgt = list(reversed(lft))
+
+        transpositions = {
+            'horizontal': board,
+            'vertical': zip(*board),
+            'diag_forw': zip(*[lft[i] + board[i] + rgt[i] for i in range(n_rows)]),
+            'diag_back': zip(*[rgt[i] + board[i] + lft[i] for i in range(n_rows)]),
+        }
+
+        for direction, transp in transpositions.iteritems():
+            for row in transp:
+                s = ''.join(map(str, row))
+                for player in range(1, 3):
+                    if s.find(str(player) * 3) >= 0:
+                        print 'player={0} direction={1}'.format(player, direction)
+                        return True
         return False
 
     def legal_moves(self, game_state, force_cache=False):
